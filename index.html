@@ -90,7 +90,7 @@
     const message = text => $("status").textContent = text;
 
     function connect() {
-      if if (!SUPABASE_URL || !SUPABASE_KEY) {
+       if (!SUPABASE_URL || !SUPABASE_KEY) {
           
         message("Supabase bağlantı bilgileri henüz eklenmedi.");
         return false;
