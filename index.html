@@ -164,7 +164,7 @@
 
         const { data: updated, error: updateError } = await db
           .from("game_rooms").update({ game_state: state })
-          .eq("id", data.id).eq("game_state", data.game_state)
+          .eq("id", data.id)
           .select().maybeSingle();
 
         if (updateError) throw updateError;
