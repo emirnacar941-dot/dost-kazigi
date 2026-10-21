@@ -7,18 +7,18 @@
 <title>Quiz Arena</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root {
-  --bg:#090909; --panel:#151515; --panel2:#202020;
-  --text:#fff; --muted:#aaa; --orange:#ff6a00;
-  --line:#363636; --good:#20c879; --bad:#ff4545;
+:root{
+  --bg:#090909;--panel:#151515;--panel2:#222;
+  --text:#fff;--muted:#aaa;--orange:#ff6a00;
+  --line:#383838;--good:#20c879;--bad:#ff4545;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,system-ui,sans-serif}
-button,input{font:inherit}
-button{cursor:pointer;border:0;border-radius:10px;padding:13px 16px;font-weight:800;background:var(--orange);color:white}
+button,input,select{font:inherit}
+button{cursor:pointer;border:0;border-radius:10px;padding:13px 16px;font-weight:800;background:var(--orange);color:#fff}
 button:hover{filter:brightness(1.12)}
 button:disabled{opacity:.4;cursor:not-allowed}
-input{width:100%;padding:13px;border-radius:10px;background:#0b0b0b;color:white;border:1px solid #444}
+input,select{width:100%;padding:13px;border-radius:10px;background:#0b0b0b;color:#fff;border:1px solid #444}
 label{display:block;color:var(--muted);margin:12px 0 6px}
 .wrap{max-width:1250px;margin:auto;padding:22px 16px}
 header{text-align:center;padding:12px 0 25px}
@@ -47,12 +47,14 @@ header p,.muted,.small,.notice{color:var(--muted)}
 .answer .letter{display:grid;place-items:center;background:#111;border-radius:7px;width:30px;height:30px;flex-shrink:0;color:var(--orange)}
 .answer.selected{border-color:var(--orange);background:#42250f}
 .answer.correct{border-color:var(--good)}
-.answer.wrong{border-color:var(--bad)}
 .audio-box{padding:14px;background:#0b0b0b;border:1px solid #393939;border-radius:12px;margin:14px 0}
 audio{width:100%;margin-top:12px}
 .leaderboard{position:sticky;top:14px}
 .leaderboard h3{margin-top:0}
-.leaderboard .player:first-child{border-color:var(--orange)}
+.timerline{display:flex;align-items:center;gap:12px;margin-top:18px}
+.timer{font-size:24px;font-weight:1000;color:var(--orange);min-width:55px}
+.track{height:10px;background:#333;border-radius:20px;overflow:hidden;flex:1}
+.trackfill{height:100%;width:100%;background:var(--orange);transition:width .2s linear}
 .winner{text-align:center;color:var(--orange);font-size:24px;font-weight:1000}
 .footer{text-align:center;color:#666;font-size:12px;padding:20px}
 @media(max-width:800px){.game-layout{grid-template-columns:1fr}.leaderboard{position:static;grid-row:2}.answers{grid-template-columns:1fr}}
@@ -88,6 +90,18 @@ audio{width:100%;margin-top:12px}
     <button id="copyBtn" class="secondary">Kodu kopyala</button>
   </div>
   <p id="roomMessage" class="muted">Oyuncular bekleniyor.</p>
+
+  <div id="settingsBox" class="panel">
+    <h3>⚙️ Oyun ayarları</h3>
+    <label for="questionCount">Soru sayısı</label>
+    <select id="questionCount">
+      <option value="12">12 soru — kısa maç</option>
+      <option value="24" selected>24 soru — standart maç</option>
+      <option value="32">32 soru — uzun maç</option>
+    </select>
+    <p class="small">Her soru için 10 saniye. Ayarları yalnızca oda sahibi değiştirebilir.</p>
+  </div>
+
   <div class="scoreline"><h3>Oyuncular</h3><span id="playerCount" class="small"></span></div>
   <div id="players" class="players"></div>
   <button id="startBtn" class="full">Oyunu başlat</button>
@@ -98,8 +112,12 @@ audio{width:100%;margin-top:12px}
   <div class="game-layout">
     <div class="panel">
       <div class="scoreline">
-        <span id="qCount" class="category">SORU 1 / 10</span>
+        <span id="qCount" class="category">SORU 1 / 24</span>
         <span id="modBadge" class="tag">MODERATÖR</span>
+      </div>
+      <div class="timerline">
+        <span id="timer" class="timer">10</span>
+        <div class="track"><div id="timerFill" class="trackfill"></div></div>
       </div>
       <div id="category" class="category" style="margin-top:18px">GENEL KÜLTÜR</div>
       <h2 id="question" class="question"></h2>
@@ -144,36 +162,140 @@ const questions=[
 {type:'Genel kültür',q:'Güneş Sistemi’nin en büyük gezegeni hangisidir?',a:['Satürn','Jüpiter','Neptün','Dünya'],c:1},
 {type:'Garip bilgiler',q:'Botanik açıdan aşağıdakilerden hangisi bir meyvedir?',a:['Havuç','Patates','Domates','Marul'],c:2},
 {type:'Genel kültür',q:'Türkiye Cumhuriyeti hangi yıl ilan edildi?',a:['1919','1920','1923','1938'],c:2},
-{type:'Genel kültür',q:'Bir satranç oyununda oyuna ilk hangi renk başlar?',a:['Siyah','Beyaz','Kırmızı','Rastgele seçilir'],c:1},
-{type:'Garip bilgiler',q:'Bilimsel olarak memeli olan aşağıdaki hayvanlardan hangisi uçar?',a:['Penguen','Yarasa','Kartal','Tavuk'],c:1},
-{type:'Genel kültür',q:'Dünyanın en büyük okyanusu hangisidir?',a:['Atlas Okyanusu','Hint Okyanusu','Arktik Okyanusu','Pasifik Okyanusu'],c:3},
-{type:'Garip bilgiler',q:'Bal arıları yiyecek kaynağının yönünü diğer arılara hangi yolla aktarabilir?',a:['Dans ederek','Renk değiştirerek','Islık çalarak','Kumda iz bırakarak'],c:0},
-{type:'Genel kültür',q:'League of Legends oyununda haritanın ana nehirlerinden geçen güçlü tarafsız canavar hangisidir?',a:['Baron Nashor','Creeper','Ender Dragon','Pudge'],c:0},
-{type:'Şarkı tahmini',q:'Dinlediğin parçanın adını veya sanatçısını tahmin et.',a:['Blinding Lights — The Weeknd','Shape of You — Ed Sheeran','Bad Guy — Billie Eilish','Levitating — Dua Lipa'],c:0,song:'The Weeknd Blinding Lights'},
+{type:'Genel kültür',q:'Satrançta ilk hamleyi hangi renk yapar?',a:['Siyah','Beyaz','Kırmızı','Rastgele'],c:1},
+{type:'Garip bilgiler',q:'Bilimsel olarak memeli olan ve uçabilen hayvan hangisidir?',a:['Penguen','Yarasa','Kartal','Tavuk'],c:1},
+{type:'Genel kültür',q:'Dünyanın en büyük okyanusu hangisidir?',a:['Atlas','Hint','Arktik','Pasifik'],c:3},
+{type:'Garip bilgiler',q:'Bal arıları besin kaynağının yönünü nasıl aktarabilir?',a:['Dans ederek','Renk değiştirerek','Islık çalarak','Kumda iz bırakarak'],c:0},
+{type:'Oyunlar',q:'League of Legends’ta güçlü tarafsız canavar hangisidir?',a:['Baron Nashor','Creeper','Ender Dragon','Pudge'],c:0},
 {type:'Genel kültür',q:'İnsan vücudundaki en büyük organ hangisidir?',a:['Karaciğer','Deri','Akciğer','Beyin'],c:1},
-{type:'Garip bilgiler',q:'Deniz samurlarının dinlenirken birbirinden uzaklaşmamak için yaptığı davranış hangisidir?',a:['El ele tutuşmak','Kabuk değiştirmek','Kumda yuva kazmak','Renk değiştirmek'],c:0},
-{type:'Genel kültür',q:'Minecraft’ta Ender Dragon hangi boyutta bulunur?',a:['Nether','Overworld','End','Deep Dark'],c:2},
-{type:'Şarkı tahmini',q:'Dinlediğin parçanın adını veya sanatçısını tahmin et.',a:['Shape of You — Ed Sheeran','Blinding Lights — The Weeknd','Flowers — Miley Cyrus','Bad Guy — Billie Eilish'],c:0,song:'Ed Sheeran Shape of You'},
+{type:'Garip bilgiler',q:'Deniz samurları dinlenirken bazen birbirinden uzaklaşmamak için ne yapar?',a:['El ele tutuşur','Renk değiştirir','Uçar','Kabuk değiştirir'],c:0},
+{type:'Oyunlar',q:'Minecraft’ta Ender Dragon nerede bulunur?',a:['Nether','Overworld','End','Deep Dark'],c:2},
 {type:'Genel kültür',q:'Dünya’nın doğal uydusu hangisidir?',a:['Güneş','Ay','Mars','Venüs'],c:1},
-{type:'Garip bilgiler',q:'Flamingoların pembe görünmesine en çok ne katkı sağlar?',a:['Güneş ışığı','Besinlerindeki pigmentler','Tuzlu su','Tüylerini boyamaları'],c:1},
+{type:'Garip bilgiler',q:'Flamingoların pembe görünmesine ne katkı sağlar?',a:['Güneş ışığı','Besin pigmentleri','Tuzlu su','Çamur'],c:1},
 {type:'Genel kültür',q:'Bir üçgenin iç açılarının toplamı kaç derecedir?',a:['90','180','270','360'],c:1},
-{type:'Şarkı tahmini',q:'Dinlediğin parçanın adını veya sanatçısını tahmin et.',a:['Bad Guy — Billie Eilish','Flowers — Miley Cyrus','Levitating — Dua Lipa','Anti-Hero — Taylor Swift'],c:0,song:'Billie Eilish Bad Guy'},
-{type:'Genel kültür',q:'Su, deniz seviyesinde yaklaşık kaç derecede kaynar?',a:['50°C','75°C','100°C','150°C'],c:2}
+{type:'Genel kültür',q:'Su deniz seviyesinde yaklaşık kaç derecede kaynar?',a:['50°C','75°C','100°C','150°C'],c:2},
+{type:'Genel kültür',q:'Japonya’nın başkenti hangisidir?',a:['Seul','Pekin','Tokyo','Bangkok'],c:2},
+{type:'Garip bilgiler',q:'Koalalar çoğunlukla neyle beslenir?',a:['Okaliptüs yaprakları','Balık','Bambu','Et'],c:0},
+{type:'Genel kültür',q:'Kızıl Gezegen olarak bilinen gezegen hangisidir?',a:['Venüs','Mars','Merkür','Satürn'],c:1},
+{type:'Oyunlar',q:'Valorant’ta raund kazanmak için temel amaçlardan biri nedir?',a:['Spike kurup patlatmak','Balık tutmak','Kale yapmak','Taş toplamak'],c:0},
+{type:'Genel kültür',q:'Dünya üzerindeki en büyük kıta hangisidir?',a:['Avrupa','Afrika','Asya','Okyanusya'],c:2},
+{type:'Garip bilgiler',q:'Kediler çoğunlukla hangi duyu organlarıyla denge kurmaya yardımcı olur?',a:['Bıyıkları','Dilleri','Dişleri','Tırnak renkleri'],c:0},
+{type:'Genel kültür',q:'İstiklal Marşı’nın yazarı kimdir?',a:['Nazım Hikmet','Mehmet Akif Ersoy','Orhan Veli','Yahya Kemal'],c:1},
+{type:'Genel kültür',q:'Bir yılda kaç ay vardır?',a:['10','11','12','13'],c:2},
+{type:'Garip bilgiler',q:'Denizatlarında yavruları hangi ebeveyn taşır?',a:['Erkek','Dişi','İkisi de hiç taşımaz','Yalnızca yumurtalar'],c:0},
+{type:'Oyunlar',q:'CS2’de bomba hangi takım tarafından kurulmaya çalışılır?',a:['Teröristler','Karşı-teröristler','Hakemler','İzleyiciler'],c:0},
+{type:'Genel kültür',q:'En fazla nüfusa sahip kıta hangisidir?',a:['Avrupa','Asya','Antarktika','Okyanusya'],c:1},
+{type:'Garip bilgiler',q:'Arılar çiçeklerden çoğunlukla ne toplar?',a:['Nektar ve polen','Kum','Tuz','Yaprak gövdesi'],c:0},
+{type:'Genel kültür',q:'Türkiye’nin başkenti hangisidir?',a:['İstanbul','İzmir','Ankara','Bursa'],c:2},
+{type:'Genel kültür',q:'Işığın Dünya’ya Güneş’ten ulaşması yaklaşık ne kadar sürer?',a:['8 dakika','8 saniye','1 saat','1 gün'],c:0},
+{type:'Garip bilgiler',q:'Penguenler doğal olarak hangi yarımkürede daha yaygındır?',a:['Güney','Kuzey','Yalnızca ekvatorda','Her türü Kuzey Kutbu’nda'],c:0},
+{type:'Genel kültür',q:'Hangi dil Brezilya’da resmî dildir?',a:['İspanyolca','Portekizce','Fransızca','İtalyanca'],c:1},
+{type:'Oyunlar',q:'Minecraft’ta elmas cevheri genellikle nerede aranır?',a:['Yer altında','Bulutlarda','Okyanus yüzeyinde','Köy çatılarında'],c:0},
+{type:'Genel kültür',q:'Dünyanın en yüksek dağı hangisidir?',a:['K2','Everest','Kilimanjaro','Elbruz'],c:1},
+{type:'Garip bilgiler',q:'Yarasalar çevrelerini algılamak için hangi yöntemi kullanabilir?',a:['Ekolokasyon','Fotosentez','Manyetik çizim','Renkli duman'],c:0},
+{type:'Genel kültür',q:'Hangi gezegen halkalarıyla özellikle tanınır?',a:['Merkür','Dünya','Satürn','Mars'],c:2},
+{type:'Genel kültür',q:'Periyodik tabloda O sembolü hangi elementi gösterir?',a:['Altın','Oksijen','Osmiyum','Hidrojen'],c:1},
+{type:'Garip bilgiler',q:'Bir salyangozun hareket etmesine yardımcı olan yapı hangisidir?',a:['Kaslı ayak','Kanat','Yüzgeç','Tüy'],c:0},
+{type:'Genel kültür',q:'Bir futbol takımında sahada normalde kaç oyuncu bulunur?',a:['9','10','11','12'],c:2},
+{type:'Genel kültür',q:'Mona Lisa tablosunu kim yaptı?',a:['Van Gogh','Leonardo da Vinci','Picasso','Monet'],c:1},
+{type:'Garip bilgiler',q:'Aşağıdakilerden hangisi yumurtlayarak çoğalan bir memelidir?',a:['Ornitorenk','Yunus','At','Kedi'],c:0},
+{type:'Genel kültür',q:'Dünya hangi yıldızın etrafında döner?',a:['Sirius','Güneş','Kutup Yıldızı','Vega'],c:1},
+{type:'Oyunlar',q:'League of Legends’ta Nexus’un temel rolü nedir?',a:['Oyunun ana hedefidir','Mağaza satıcısıdır','Harita süsüdür','Bir kostümdür'],c:0},
+{type:'Genel kültür',q:'Türkiye’nin en uzun nehri hangisidir?',a:['Kızılırmak','Meriç','Gediz','Asi'],c:0},
+{type:'Garip bilgiler',q:'Kelebekler tat alma reseptörlerini nerelerinde de bulundurabilir?',a:['Ayaklarında','Kulaklarında','Dişlerinde','Boynuzlarında'],c:0},
+{type:'Genel kültür',q:'İnsanlarda kanı vücuda pompalayan organ hangisidir?',a:['Akciğer','Kalp','Mide','Böbrek'],c:1},
+{type:'Genel kültür',q:'Hangi sayı asal sayıdır?',a:['9','15','17','21'],c:2},
+{type:'Garip bilgiler',q:'Deniz yıldızlarının çoğunda kaç kol bulunur?',a:['İki','Beş','Sekiz','On iki'],c:1},
+{type:'Genel kültür',q:'Olimpiyat halkalarının sayısı kaçtır?',a:['Dört','Beş','Altı','Yedi'],c:1},
+{type:'Genel kültür',q:'Hangi ülke piramitleriyle özellikle tanınır?',a:['Mısır','Norveç','Kanada','Japonya'],c:0},
+{type:'Garip bilgiler',q:'Bir grup flamingonun yaygın toplu adı hangisidir?',a:['Flamboyance','Sürücü','Kafile','Takım elbise'],c:0},
+{type:'Genel kültür',q:'Elektrik akımının SI birimi nedir?',a:['Volt','Amper','Watt','Ohm'],c:1},
+{type:'Genel kültür',q:'Dünya’nın şekline en yakın bilimsel tanım hangisidir?',a:['Düz disk','Geoit','Küp','Silindir'],c:1},
+{type:'Genel kültür',q:'Türkiye hangi iki kıta üzerinde topraklara sahiptir?',a:['Asya ve Avrupa','Afrika ve Asya','Avrupa ve Amerika','Asya ve Okyanusya'],c:0},
+{type:'Genel kültür',q:'Hangi spor dalında “servis” terimi kullanılır?',a:['Tenis','Güreş','Atletizm','Halter'],c:0},
+{type:'Garip bilgiler',q:'Vombatların dışkılarıyla ilgili şaşırtıcı özellik nedir?',a:['Küp biçimli olabilir','Her zaman mavi olur','Uçar','Suda erimez'],c:0},
+{type:'Genel kültür',q:'Fotosentez sırasında bitkiler atmosferden hangi gazı alır?',a:['Oksijen','Karbondioksit','Helyum','Hidrojen'],c:1},
+{type:'Genel kültür',q:'Türkiye’nin para birimi hangisidir?',a:['Euro','Türk lirası','Dinar','Sterlin'],c:1},
+{type:'Genel kültür',q:'Bir saatte kaç dakika vardır?',a:['30','45','60','100'],c:2},
+{type:'Genel kültür',q:'İtalya’nın başkenti hangisidir?',a:['Madrid','Roma','Atina','Lizbon'],c:1},
+{type:'Garip bilgiler',q:'Köpeklerin burun izi insanlar için parmak izi gibi benzersiz olabilir mi?',a:['Evet','Hayır, bütün köpeklerde aynıdır','Yalnızca yavrularda','Yalnızca beyaz köpeklerde'],c:0},
+{type:'Genel kültür',q:'Hangi madde oda sıcaklığında sıvı bir metaldir?',a:['Demir','Cıva','Bakır','Alüminyum'],c:1},
+{type:'Genel kültür',q:'Gökkuşağında geleneksel olarak kaç renk sayılır?',a:['Beş','Altı','Yedi','Dokuz'],c:2},
+{type:'Garip bilgiler',q:'Kargalar bazı araştırmalarda hangi yetenekleriyle dikkat çeker?',a:['Problem çözme','Fotosentez','Solungaçla nefes alma','Işınlanma'],c:0},
+{type:'Genel kültür',q:'Ay’a ilk ayak basan insan kimdir?',a:['Yuri Gagarin','Neil Armstrong','Buzz Aldrin','John Glenn'],c:1},
+{type:'Genel kültür',q:'Hangi organ vücuttaki kanı filtrelemeye yardımcı olur?',a:['Böbrek','Mide','Dalak dışındaki deri','Pankreas'],c:0},
+{type:'Garip bilgiler',q:'Denizanası hangi temel özelliğe sahiptir?',a:['Omurgasızdır','Memelidir','Kuş türüdür','Bitkidir'],c:0},
+{type:'Genel kültür',q:'Bir düzinede kaç adet vardır?',a:['10','12','20','24'],c:1},
+{type:'Genel kültür',q:'Hangi şehir Türkiye’nin Ege Bölgesi’ndedir?',a:['Erzurum','İzmir','Van','Trabzon'],c:1},
+{type:'Garip bilgiler',q:'Bukalemunlar neden renk değiştirebilir?',a:['İletişim ve sıcaklık düzenleme gibi nedenlerle','Yalnızca görünmez olmak için','Tüylerini değiştirmek için','Uçmak için'],c:0},
+{type:'Genel kültür',q:'Dünya’nın en büyük kara hayvanı hangisidir?',a:['Zürafa','Afrika fili','Gergedan','Su aygırı'],c:1},
+{type:'Genel kültür',q:'Hangi müzik aletinin genellikle 88 tuşu vardır?',a:['Keman','Piyano','Flüt','Davul'],c:1},
+{type:'Garip bilgiler',q:'Kutup ayıları doğal olarak hangi bölgede yaşar?',a:['Arktik','Antarktika','Sahra','Amazon’un içi'],c:0},
+{type:'Genel kültür',q:'Bir kilometre kaç metredir?',a:['100','500','1000','10000'],c:2},
+{type:'Genel kültür',q:'Hangi gezegen Güneş’e en yakındır?',a:['Venüs','Merkür','Dünya','Mars'],c:1},
+{type:'Garip bilgiler',q:'Kelebeklerin yaşam döngüsünde hangi aşama bulunur?',a:['Tırtıl','Yavru kuş','Larva balık','Yavru memeli'],c:0},
+{type:'Genel kültür',q:'Dünyanın en büyük sıcak çölü hangisidir?',a:['Gobi','Sahra','Kalahari','Atacama'],c:1},
+{type:'Genel kültür',q:'Türkiye’nin batısında hangi deniz bulunur?',a:['Karadeniz','Ege Denizi','Hazar Denizi','Kızıldeniz'],c:1},
+{type:'Garip bilgiler',q:'Tembel hayvanlar genellikle nasıl hareket eder?',a:['Yavaşça','Jet hızında','Uçarak','Sürekli koşarak'],c:0},
+{type:'Genel kültür',q:'Hangi kan hücresi oksijen taşımada temel rol oynar?',a:['Alyuvar','Akyuvar','Trombosit','Sinir hücresi'],c:0},
+{type:'Genel kültür',q:'Hangi kıta tamamen Güney Yarımküre’dedir?',a:['Avrupa','Antarktika','Asya','Kuzey Amerika'],c:1},
+
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve adını tahmin et.',a:['Şımarık — Tarkan','Aşkın Olayım — Simge','Dudu — Tarkan','Yalnız Çiçek — Aleyna Tilki'],c:0,song:'Tarkan Simarik'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve sanatçıyı tahmin et.',a:['Sezen Aksu','Sertab Erener','Sıla','Göksel'],c:0,song:'Sezen Aksu Gülümse'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve adını tahmin et.',a:['Bir Derdim Var — maNga','Cambaz — Mor ve Ötesi','Deli — maNga','Dünyanın Sonuna Doğmuşum — maNga'],c:0,song:'maNga Bir Derdim Var'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve sanatçıyı tahmin et.',a:['Barış Manço','Cem Karaca','Erkin Koray','MFÖ'],c:0,song:'Baris Manco Gulpembe'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve adını tahmin et.',a:['Aşkın Olayım — Simge','Antidepresan — Mert Demir','Yankı — Simge','Miş Miş — Simge'],c:0,song:'Simge Askin Olayim'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve sanatçıyı tahmin et.',a:['Müslüm Gürses','Orhan Gencebay','İbrahim Tatlıses','Ferdi Tayfur'],c:0,song:'Müslüm Gürses Nilüfer'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve adını tahmin et.',a:['Antidepresan — Mert Demir','Ateşe Düştüm — Mert Demir','Pişman Değilim — Mert Demir','Cehennemin Dibi — Mert Demir'],c:0,song:'Mert Demir Antidepresan'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve sanatçıyı tahmin et.',a:['Ajda Pekkan','Sezen Aksu','Nilüfer','Sertab Erener'],c:0,song:'Ajda Pekkan Yakar Gecerim'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve adını tahmin et.',a:['Kuzu Kuzu — Tarkan','Ölürüm Sana — Tarkan','Dudu — Tarkan','Yolla — Tarkan'],c:0,song:'Tarkan Kuzu Kuzu'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve sanatçıyı tahmin et.',a:['Mor ve Ötesi','maNga','Duman','Athena'],c:0,song:'Mor ve Ötesi Cambaz'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve adını tahmin et.',a:['Senden Daha Güzel — Duman','Belki Alışman Lazım — Duman','Her Şeyi Yak — Duman','Köprüaltı — Duman'],c:0,song:'Duman Senden Daha Güzel'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve sanatçıyı tahmin et.',a:['Sezen Aksu','Sıla','Göksel','Hande Yener'],c:0,song:'Sezen Aksu Hadi Bakalim'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve adını tahmin et.',a:['Yalnızlık Senfonisi — Model','Değmesin Ellerimiz — Model','Pembe Mezarlık — Model','Buzdan Şato — Model'],c:0,song:'Model Yalnizlik Senfonisi'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve sanatçıyı tahmin et.',a:['Sertab Erener','Ajda Pekkan','Sıla','Gülşen'],c:0,song:'Sertab Erener Rengarenk'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve adını tahmin et.',a:['İsyan — Halil Sezai','Paramparça — Teoman','Gemiler — Teoman','Renkli Rüyalar Oteli — Teoman'],c:0,song:'Halil Sezai Isyan'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve sanatçıyı tahmin et.',a:['Yalın','Kenan Doğulu','Tarkan','Mustafa Sandal'],c:0,song:'Yalin Ki Sen'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve adını tahmin et.',a:['Ele Güne Karşı — MFÖ','Sarı Laleler — MFÖ','Mazeretim Var Asabiyim Ben — MFÖ','Güllerin İçinden — MFÖ'],c:0,song:'MFÖ Ele Güne Karsi'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve sanatçıyı tahmin et.',a:['Hande Yener','Gülşen','Demet Akalın','Hadise'],c:0,song:'Hande Yener Romeo'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve adını tahmin et.',a:['Farkımız Var — Gülşen','Bangır Bangır — Gülşen','İltimas — Gülşen','Yatcaz Kalkcaz Ordayım — Gülşen'],c:0,song:'Gulsen Farkimiz Var'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve sanatçıyı tahmin et.',a:['Cem Karaca','Barış Manço','Erkin Koray','Edip Akbayram'],c:0,song:'Cem Karaca Tamirci Ciragi'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve adını tahmin et.',a:['Kendine İyi Bak — Duman','Senden Daha Güzel — Duman','Bu Akşam — Duman','Helal Olsun — Duman'],c:0,song:'Duman Kendine Iyi Bak'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve sanatçıyı tahmin et.',a:['Athena','maNga','Mor ve Ötesi','Duman'],c:0,song:'Athena For Real'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve adını tahmin et.',a:['Ateşe Düştüm — Mert Demir','Antidepresan — Mert Demir','Cehennemin Dibi — Mert Demir','İkimize Birden — Mert Demir'],c:0,song:'Mert Demir Atese Dustum'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve sanatçıyı tahmin et.',a:['İrem Derici','Gülşen','Hadise','Simge'],c:0,song:'Irem Derici Kalbimin Tek Sahibine'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve adını tahmin et.',a:['Mecnun — Emir Can İğrek','Ali Cabbar — Emir Can İğrek','Nalan — Emir Can İğrek','Beyaz Skandalım — Emir Can İğrek'],c:0,song:'Emir Can Igrek Mecnun'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve sanatçıyı tahmin et.',a:['Edis','Murat Boz','Yalın','Kenan Doğulu'],c:0,song:'Edis Martilar'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve adını tahmin et.',a:['İçime Ata Ata — Buray','Sen Sevda mısın — Buray','Tac Mahal — Buray','Mecnun — Buray'],c:0,song:'Buray Icime Ata Ata'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve sanatçıyı tahmin et.',a:['Mabel Matiz','Edis','Mert Demir','Emir Can İğrek'],c:0,song:'Mabel Matiz Antidepresan'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve adını tahmin et.',a:['Dönence — Barış Manço','Gülpembe — Barış Manço','Dağlar Dağlar — Barış Manço','Arkadaşım Eşek — Barış Manço'],c:0,song:'Baris Manco Donence'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve sanatçıyı tahmin et.',a:['Teoman','Şebnem Ferah','Özlem Tekin','Şevval Sam'],c:0,song:'Teoman Paramparca'},
+{type:'Türkçe şarkı',q:'Şarkıyı dinle ve adını tahmin et.',a:['Aşk — Sertab Erener','Everyway That I Can — Sertab Erener','Rengarenk — Sertab Erener','Kendime Yeni Bir Ben Lazım — Sertab Erener'],c:0,song:'Sertab Erener Ask'},
+{type:'Yabancı şarkı',q:'Şarkıyı dinle ve adını tahmin et.',a:['Blinding Lights — The Weeknd','Shape of You — Ed Sheeran','Bad Guy — Billie Eilish','Levitating — Dua Lipa'],c:0,song:'The Weeknd Blinding Lights'},
+{type:'Yabancı şarkı',q:'Şarkıyı dinle ve adını tahmin et.',a:['Shape of You — Ed Sheeran','Perfect — Ed Sheeran','Bad Habits — Ed Sheeran','Photograph — Ed Sheeran'],c:0,song:'Ed Sheeran Shape of You'},
+{type:'Yabancı şarkı',q:'Şarkıyı dinle ve sanatçıyı tahmin et.',a:['Billie Eilish','Dua Lipa','Ariana Grande','Taylor Swift'],c:0,song:'Billie Eilish Bad Guy'},
+{type:'Yabancı şarkı',q:'Şarkıyı dinle ve adını tahmin et.',a:['Levitating — Dua Lipa','New Rules — Dua Lipa','Houdini — Dua Lipa','Dance The Night — Dua Lipa'],c:0,song:'Dua Lipa Levitating'},
+{type:'Yabancı şarkı',q:'Şarkıyı dinle ve sanatçıyı tahmin et.',a:['The Weeknd','Bruno Mars','Drake','Justin Bieber'],c:0,song:'The Weeknd Save Your Tears'},
+{type:'Yabancı şarkı',q:'Şarkıyı dinle ve adını tahmin et.',a:['Flowers — Miley Cyrus','Wrecking Ball — Miley Cyrus','Angels Like You — Miley Cyrus','Party in the U.S.A. — Miley Cyrus'],c:0,song:'Miley Cyrus Flowers'}
 ];
 
-let room=null,roomId=null,playerId=null,playerName='',pollTimer=null;
-let shownQuestion=-1,audioCache={},audioSearchToken=0;
+let room=null,roomId=null,playerId=null,playerName='';
+let pollTimer=null,clockTimer=null,shownQuestion=-1,audioCache={},audioSearchToken=0;
+let busy=false;
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function status(id,msg){$(id).textContent=msg;$(id).classList.remove('hidden')}
 function hide(id){$(id).classList.add('hidden')}
 function show(id){$(id).classList.remove('hidden')}
-function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
+function shuffle(a){const out=[...a];for(let i=out.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[out[i],out[j]]=[out[j],out[i]]}return out}
 function randCode(){return String(Math.floor(100000+Math.random()*900000))}
-function newState(){return {status:'waiting',players:[],moderatorId:null,previousModeratorId:null,questionIndex:0,questionOrder:[],answers:{},scores:{},ownerId:playerId,round:0}}
+function newState(){return {status:'waiting',players:[],moderatorId:null,previousModeratorId:null,questionIndex:0,questionCount:24,questionOrder:[],answers:{},scores:{},ownerId:playerId,round:0,questionStartedAt:null}}
 function makePlayer(){return {id:playerId,name:playerName}}
 function isMod(){return !!room&&room.moderatorId===playerId}
+function isOwner(){return !!room&&room.ownerId===playerId}
 function moderator(){return room?.players?.find(p=>p.id===room.moderatorId)}
-function escapeName(s){return esc(s)}
+function getQuestion(){return questions[room?.questionOrder?.[room.questionIndex]]}
+function deadline(){return (room?.questionStartedAt||0)+10000}
+function expired(){return !room?.questionStartedAt||Date.now()>=deadline()}
 async function saveState(){
   if(!roomId||!room)return;
   const {error}=await db.from('game_rooms').update({game_state:room}).eq('id',roomId);
@@ -182,59 +304,69 @@ async function saveState(){
 async function fetchRoom(){
   if(!roomId)return;
   const {data,error}=await db.from('game_rooms').select('*').eq('id',roomId).maybeSingle();
-  if(error||!data)return;
-  const fresh=data.game_state;
-  if(!fresh)return;
-  room=fresh;
+  if(error||!data||!data.game_state)return;
+  room=data.game_state;
+  room.players=room.players||[];
   render();
 }
 async function joinRoom(data,code){
-  roomId=data.id;room=data.game_state;room.players=room.players||[];
+  roomId=data.id;room=data.game_state;
+  room.players=room.players||[];
   if(room.players.some(p=>p.id===playerId)){status('homeStatus','Bu oyuncu zaten odada.');return}
   if(room.status!=='waiting'){status('homeStatus','Bu oyun başlamış.');return}
   room.players.push(makePlayer());room.scores=room.scores||{};room.scores[playerId]=0;
   await saveState();
   $('shownCode').textContent=code;hide('home');show('room');render();
   if(pollTimer)clearInterval(pollTimer);
-  pollTimer=setInterval(fetchRoom,1800);
+  pollTimer=setInterval(fetchRoom,1500);
 }
 $('createBtn').onclick=async()=>{
+  if(busy)return;busy=true;
   playerName=$('name').value.trim();
-  if(!playerName)return status('homeStatus','Önce oyuncu adını yaz.');
+  if(!playerName){busy=false;return status('homeStatus','Önce oyuncu adını yaz.')}
   playerId=crypto.randomUUID();
   const code=randCode(),state=newState();
   const {data,error}=await db.from('game_rooms').insert({room_code:code,game_state:state}).select().single();
-  if(error)return status('homeStatus','Oda oluşturulamadı: '+error.message);
-  await joinRoom(data,code);
+  if(error){busy=false;return status('homeStatus','Oda oluşturulamadı: '+error.message)}
+  await joinRoom(data,code);busy=false;
 };
 $('joinBtn').onclick=async()=>{
+  if(busy)return;busy=true;
   playerName=$('name').value.trim();
   const code=$('roomCode').value.trim();
-  if(!playerName)return status('homeStatus','Önce oyuncu adını yaz.');
-  if(!/^\d{6}$/.test(code))return status('homeStatus','6 haneli oda kodunu gir.');
+  if(!playerName){busy=false;return status('homeStatus','Önce oyuncu adını yaz.')}
+  if(!/^\d{6}$/.test(code)){busy=false;return status('homeStatus','6 haneli oda kodunu gir.')}
   const {data,error}=await db.from('game_rooms').select('*').eq('room_code',code).maybeSingle();
-  if(error||!data)return status('homeStatus','Bu kodla oda bulunamadı. Kodu kontrol et.');
-  if(data.game_state?.status!=='waiting')return status('homeStatus','Bu oyun başlamış.');
+  if(error||!data){busy=false;return status('homeStatus','Bu kodla oda bulunamadı. Kodu kontrol et.')}
+  if(data.game_state?.status!=='waiting'){busy=false;return status('homeStatus','Bu oyun başlamış.')}
   playerId=crypto.randomUUID();
-  await joinRoom(data,code);
+  await joinRoom(data,code);busy=false;
 };
 $('copyBtn').onclick=async()=>{
   try{await navigator.clipboard.writeText($('shownCode').textContent);$('copyBtn').textContent='Kopyalandı!'}
   catch{$('copyBtn').textContent='Kod: '+$('shownCode').textContent}
 };
+$('questionCount').onchange=async()=>{
+  if(!isOwner()||room.status!=='waiting')return;
+  room.questionCount=Number($('questionCount').value);
+  await saveState();render();
+};
 function render(){
   if(!room)return;
   const ps=room.players||[];
   $('playerCount').textContent=ps.length+' oyuncu';
-  $('players').innerHTML=ps.map(p=>`<div class="player"><span>${escapeName(p.name)}${p.id===playerId?' (Sen)':''}</span>${p.id===room.moderatorId?'<span class="tag">MODERATÖR</span>':p.id===room.ownerId?'<span class="tag host">ODA SAHİBİ</span>':''}</div>`).join('');
-  $('startBtn').classList.toggle('hidden',room.status!=='waiting'||room.ownerId!==playerId);
+  $('players').innerHTML=ps.map(p=>`<div class="player"><span>${esc(p.name)}${p.id===playerId?' (Sen)':''}</span>${p.id===room.ownerId?'<span class="tag host">ODA SAHİBİ</span>':''}${p.id===room.moderatorId?'<span class="tag">MODERATÖR</span>':''}</div>`).join('');
+  $('settingsBox').classList.toggle('hidden',room.status!=='waiting');
+  $('questionCount').disabled=!isOwner();
+  $('questionCount').value=String(room.questionCount||24);
+  $('startBtn').classList.toggle('hidden',room.status!=='waiting'||!isOwner());
   $('roomMessage').textContent=room.status==='waiting'?'Oyuncular bekleniyor. Oda sahibi oyunu başlatabilir.':'';
   if(room.status==='playing'){hide('room');show('game');hide('results');renderQuestion()}
   else if(room.status==='finished'){hide('room');hide('game');show('results');renderResults()}
   else{show('room');hide('game');hide('results')}
 }
 $('startBtn').onclick=async()=>{
-  if(!room||room.ownerId!==playerId)return;
+  if(!isOwner()||room.status!=='waiting')return;
   const ps=room.players||[];
   if(!ps.length)return;
   const eligible=ps.filter(p=>p.id!==room.previousModeratorId);
@@ -242,10 +374,11 @@ $('startBtn').onclick=async()=>{
   room.moderatorId=pool[Math.floor(Math.random()*pool.length)].id;
   room.previousModeratorId=room.moderatorId;
   room.status='playing';room.questionIndex=0;
-  room.questionOrder=shuffle(questions.map((_,i)=>i)).slice(0,10);
+  const count=Math.min(Number(room.questionCount)||24,questions.length);
+  room.questionOrder=shuffle(questions.map((_,i)=>i)).slice(0,count);
   room.answers={};room.scores={};
   ps.forEach(p=>room.scores[p.id]=0);
-  room.round=(room.round||0)+1;shownQuestion=-1;
+  room.round=(room.round||0)+1;room.questionStartedAt=Date.now();shownQuestion=-1;
   await saveState();render();
 };
 async function loadSong(q){
@@ -255,87 +388,101 @@ async function loadSong(q){
   if(!q.song)return;
   show('audioBox');
   $('audioMessage').textContent='Şarkı önizlemesi aranıyor...';
-  if(audioCache[q.song]){
-    if(token!==audioSearchToken)return;
-    setAudio(audioCache[q.song]);return;
-  }
+  if(audioCache[q.song]){if(token===audioSearchToken)setAudio(audioCache[q.song]);return}
   try{
-    const url='https://itunes.apple.com/search?term='+encodeURIComponent(q.song)+'&entity=song&limit=10';
+    const url='https://itunes.apple.com/search?term='+encodeURIComponent(q.song)+'&entity=song&limit=15';
     const res=await fetch(url);
     if(!res.ok)throw new Error('Önizleme araması başarısız.');
     const data=await res.json();
     const track=(data.results||[]).find(x=>x.previewUrl);
     if(token!==audioSearchToken)return;
-    if(!track){$('audioMessage').textContent='Bu parça için kullanılabilir önizleme bulunamadı. Yine de seçeneklerden tahmin edebilirsin.';return}
-    audioCache[q.song]=track.previewUrl;
-    setAudio(track.previewUrl);
+    if(!track){$('audioMessage').textContent='Bu parça için önizleme bulunamadı. Seçeneklerden tahmin edebilirsin.';return}
+    audioCache[q.song]=track.previewUrl;setAudio(track.previewUrl);
   }catch{
     if(token===audioSearchToken)$('audioMessage').textContent='Ses önizlemesi yüklenemedi. İnternet bağlantını kontrol et.';
   }
 }
-function setAudio(url){
-  $('songAudio').src=url;$('songAudio').load();
-  $('audioMessage').textContent='🎵 Önizlemeyi dinle ve doğru cevabı seç.';
+function setAudio(url){$('songAudio').src=url;$('songAudio').load();$('audioMessage').textContent='🎵 Önizlemeyi dinle ve doğru cevabı seç.'}
+function updateTimer(){
+  if(!room||room.status!=='playing')return;
+  const remaining=Math.max(0,deadline()-Date.now());
+  const seconds=Math.ceil(remaining/1000);
+  $('timer').textContent=seconds;
+  $('timerFill').style.width=(remaining/10000*100)+'%';
+  if(remaining<=0){
+    $('answers').querySelectorAll('button').forEach(b=>b.disabled=true);
+    $('answerStatus').textContent='Süre doldu! Moderatör sonraki soruya geçebilir.';
+    if(isMod())$('nextBtn').disabled=false;
+  }
 }
 function renderQuestion(){
   if(!room)return;
-  const idx=room.questionOrder?.[room.questionIndex],q=questions[idx];
-  if(!q){finishGame();return}
+  const q=getQuestion();
+  if(!q){if(isOwner())finishGame();return}
   if(shownQuestion!==room.questionIndex){
     shownQuestion=room.questionIndex;
     if(q.song)loadSong(q);else{audioSearchToken++;hide('audioBox');$('songAudio').pause()}
   }
-  const myAnswer=room.answers?.[playerId];
+  const answers=room.answers||{};
+  const myAnswer=answers[playerId];
+  const answerValues=Object.values(answers);
+  const answered=answerValues.length;
+  const timeOver=expired();
   $('qCount').textContent=`SORU ${room.questionIndex+1} / ${room.questionOrder.length}`;
   $('modBadge').textContent='MODERATÖR: '+(moderator()?.name||'seçiliyor');
   $('category').textContent=q.type;
   $('question').textContent=q.q;
-  $('answers').innerHTML=q.a.map((a,i)=>`<button class="answer ${myAnswer===i?'selected':''}" ${myAnswer!==undefined?'disabled':''} data-answer="${i}"><span class="letter">${'ABCD'[i]}</span><span>${esc(a)}</span></button>`).join('');
+  $('answers').innerHTML=q.a.map((a,i)=>`<button class="answer ${myAnswer===i?'selected':''}" ${(myAnswer!==undefined||timeOver)?'disabled':''} data-answer="${i}"><span class="letter">${'ABCD'[i]}</span><span>${esc(a)}</span></button>`).join('');
   $('answers').querySelectorAll('button').forEach(b=>b.onclick=()=>submitAnswer(Number(b.dataset.answer)));
-  const answered=Object.keys(room.answers||{}).length;
-  $('answerStatus').textContent=myAnswer!==undefined?'Cevabın kaydedildi. '+answered+'/'+room.players.length+' oyuncu cevapladı.':`Cevabını seç. ${answered}/${room.players.length} oyuncu cevapladı.`;
+  $('answerStatus').textContent=myAnswer!==undefined?'Cevabın kaydedildi. '+answered+'/'+room.players.length+' oyuncu cevapladı.':timeOver?'Süre doldu!':'Cevabını seç. '+answered+'/'+room.players.length+' oyuncu cevapladı.';
   $('moderatorControls').classList.toggle('hidden',!isMod());
-  $('nextBtn').disabled=answered<(room.players||[]).length;
+  $('nextBtn').disabled=!(answered>=(room.players||[]).length||timeOver);
   const scores=(room.players||[]).map(p=>({id:p.id,name:p.name,score:room.scores?.[p.id]||0})).sort((a,b)=>b.score-a.score);
   $('scores').innerHTML=scores.map((p,i)=>`<div class="player"><span>${i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.'} ${esc(p.name)}${p.id===room.moderatorId?' 👑':''}</span><strong>${p.score}</strong></div>`).join('');
+  updateTimer();
 }
 async function submitAnswer(i){
-  if(!room||room.answers?.[playerId]!==undefined)return;
-  const q=questions[room.questionOrder[room.questionIndex]];
+  if(!room||room.status!=='playing'||expired()||room.answers?.[playerId]!==undefined)return;
+  const q=getQuestion();if(!q)return;
   room.answers=room.answers||{};room.scores=room.scores||{};
   room.answers[playerId]=i;
   if(i===q.c)room.scores[playerId]=(room.scores[playerId]||0)+100;
   await saveState();renderQuestion();
 }
 $('nextBtn').onclick=async()=>{
-  if(!isMod())return;
-  if(Object.keys(room.answers||{}).length<(room.players||[]).length)return;
-  room.questionIndex++;room.answers={};shownQuestion=-1;
+  if(!isMod()||room.status!=='playing')return;
+  const answered=Object.keys(room.answers||{}).length;
+  if(answered<(room.players||[]).length&&!expired())return;
+  room.questionIndex++;room.answers={};room.questionStartedAt=Date.now();shownQuestion=-1;
   if(room.questionIndex>=room.questionOrder.length){await finishGame();return}
   await saveState();render();
 };
 async function finishGame(){
-  room.status='finished';room.previousModeratorId=room.moderatorId;
+  if(!room||room.status==='finished')return;
+  room.status='finished';room.questionStartedAt=null;
   await saveState();render();
 }
 function renderResults(){
   const scores=(room.players||[]).map(p=>({name:p.name,id:p.id,score:room.scores?.[p.id]||0})).sort((a,b)=>b.score-a.score);
   $('winnerText').textContent=scores.length?`Kazanan: ${scores[0].name} · ${scores[0].score} puan`:'Oyun tamamlandı.';
-  $('finalScores').innerHTML=scores.map((p,i)=>`<div class="player"><span>${i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.'} ${esc(p.name)}</span><strong>${p.score}</strong></div>`).join('');
-  $('againBtn').disabled=room.ownerId!==playerId;
+  $('finalScores').innerHTML=scores.map((p,i)=>`<div class="player"><span>${i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.'} ${esc(p.name)}${p.id===playerId?' (Sen)':''}</span><strong>${p.score}</strong></div>`).join('');
+  $('againBtn').disabled=!isOwner();
 }
 $('againBtn').onclick=async()=>{
-  if(!room||room.ownerId!==playerId)return;
+  if(!isOwner()||room.status!=='finished')return;
   room.status='waiting';room.moderatorId=null;room.questionIndex=0;
-  room.answers={};room.scores={};
+  room.answers={};room.questionStartedAt=null;room.scores={};
   (room.players||[]).forEach(p=>room.scores[p.id]=0);
   shownQuestion=-1;await saveState();render();
 };
 $('leaveBtn').onclick=()=>{
   if(pollTimer)clearInterval(pollTimer);
-  room=null;roomId=null;playerId=null;hide('room');hide('game');hide('results');show('home');
+  if(clockTimer)clearInterval(clockTimer);
+  room=null;roomId=null;playerId=null;playerName='';
+  hide('room');hide('game');hide('results');show('home');
   $('name').value='';$('roomCode').value='';
 };
+clockTimer=setInterval(updateTimer,200);
 </script>
 </body>
 </html>
