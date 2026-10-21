@@ -435,6 +435,7 @@ function renderQuestion(){
   const answered=answerValues.length;
   const timeOver=expired();
   $('qCount').textContent=`SORU ${room.questionIndex+1} / ${room.questionOrder.length}`;
+  $('timer').textContent=Math.ceil(Math.max(0,deadline()-Date.now())/1000);
   $('modBadge').textContent='MODERATÖR: '+(moderator()?.name||'seçiliyor');
   $('category').textContent=q.type;
   $('question').textContent=q.q;
