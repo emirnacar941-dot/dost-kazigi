@@ -1,228 +1,304 @@
-
 <!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dost Kazığı | Online</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dost Kazığı — Online</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0; min-height: 100vh; color: #f5f5f5;
-      background: radial-gradient(circle at top, #18352d, #090d0c 65%);
-      font-family: Arial, sans-serif; display: grid; place-items: center;
-      padding: 20px;
-    }
-    .panel {
-      width: 100%; max-width: 500px; padding: 30px;
-      background: #121a17; border: 1px solid #30483d;
-      border-radius: 20px; box-shadow: 0 20px 60px #0008;
-    }
-    h1 { text-align: center; margin: 0 0 8px; color: #7cf0ae; }
-    .sub { text-align: center; color: #aabbb1; margin-bottom: 28px; }
-    label { display: block; margin: 15px 0 7px; color: #c9d8cf; }
-    input {
-      width: 100%; padding: 13px; border-radius: 9px;
-      border: 1px solid #3b5146; background: #0a100d;
-      color: white; font-size: 16px;
-    }
-    button {
-      width: 100%; padding: 13px; margin-top: 12px;
-      border: 0; border-radius: 9px; background: #69df9a;
-      color: #092013; font-size: 16px; font-weight: bold; cursor: pointer;
-    }
-    button.secondary { background: #273a30; color: white; }
-    button:disabled { opacity: .5; cursor: wait; }
-    .line { height: 1px; background: #304238; margin: 24px 0; }
-    #status { margin-top: 18px; color: #f4d58a; overflow-wrap: anywhere; }
-    #room { display: none; }
-    .roomcode { font-size: 30px; letter-spacing: 5px; color: #7cf0ae; text-align: center; }
-    #players { padding-left: 22px; line-height: 2; }
-    .hint { font-size: 13px; line-height: 1.6; color: #9caea3; }
+    :root { color-scheme: dark; --bg:#0b1511; --panel:#14231c; --panel2:#1b3026; --green:#37c978; --text:#f1f7f3; --muted:#a8bbb0; --red:#ff7777; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; font-family:system-ui,-apple-system,Segoe UI,sans-serif; color:var(--text); background:radial-gradient(ellipse at top,#183d2b 0%,var(--bg) 58%); padding:24px 14px 48px; }
+    main { width:min(760px,100%); margin:auto; }
+    header { text-align:center; margin:12px 0 24px; }
+    .logo { font-size:clamp(30px,7vw,48px); font-weight:900; letter-spacing:1px; }
+    .logo span { color:var(--green); }
+    .sub { color:var(--muted); margin-top:5px; }
+    .panel { background:rgba(20,35,28,.96); border:1px solid #2b4939; border-radius:18px; padding:20px; box-shadow:0 18px 55px #0004; margin:14px 0; }
+    h2,h3 { margin-top:0; }
+    label { display:block; margin:12px 0 6px; color:var(--muted); font-size:14px; }
+    input { width:100%; padding:13px 14px; border-radius:10px; border:1px solid #3b5948; background:#0d1913; color:var(--text); font:inherit; }
+    button { border:0; border-radius:11px; padding:13px 16px; font:inherit; font-weight:750; cursor:pointer; background:var(--green); color:#07130c; }
+    button.secondary { background:#294536; color:var(--text); border:1px solid #42664f; }
+    button:disabled { opacity:.45; cursor:not-allowed; }
+    .actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px; }
+    .full { width:100%; margin-top:10px; }
+    .hidden { display:none !important; }
+    .notice { color:var(--muted); font-size:14px; line-height:1.5; }
+    .status { padding:11px 13px; border-radius:10px; background:#0d1913; color:var(--muted); margin:12px 0; overflow-wrap:anywhere; }
+    .status.error { color:#ffd2d2; border:1px solid #7b3d3d; }
+    .roomcode { font-size:clamp(34px,9vw,48px); letter-spacing:8px; font-weight:900; text-align:center; color:var(--green); padding:8px; }
+    ul { padding-left:22px; }
+    li { margin:8px 0; }
+    .cards { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin:18px 0; }
+    .playing-card { width:58px; height:82px; border-radius:9px; border:1px solid #b9c9be; background:#f8faf8; color:#17251c; font-weight:850; font-size:19px; box-shadow:0 5px 12px #0004; }
+    .playing-card.red { color:#c52e3b; }
+    .playing-card.selected { transform:translateY(-8px); outline:3px solid var(--green); }
+    .table { min-height:90px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center; align-items:center; background:#0d1913; border:1px dashed #3b5948; border-radius:12px; padding:14px; }
+    .small { font-size:12px; color:var(--muted); }
+    @media(max-width:480px) { .actions { grid-template-columns:1fr; } .panel { padding:16px; } }
   </style>
 </head>
 <body>
-  <main class="panel">
-    <h1>♠ DOST KAZIĞI</h1>
-    <p class="sub">Arkadaşlarınla çevrim içi oyna</p>
+<main>
+  <header>
+    <div class="logo">DOST <span>KAZIĞI</span></div>
+    <div class="sub">Arkadaşlarınla çevrim içi kart oyunu</div>
+  </header>
 
-    <section id="setup">
-      <label for="playerName">Oyuncu adın</label>
-      <input id="playerName" maxlength="20" placeholder="Oyuncu adını yaz">
+  <section id="setup" class="panel">
+    <h2>Oyuna katıl</h2>
+    <label for="playerName">Oyuncu adın</label>
+    <input id="playerName" maxlength="18" placeholder="Örn. Emir">
+    <div class="actions">
+      <button id="createBtn">Oda oluştur</button>
+      <button id="joinBtn" class="secondary">Odaya katıl</button>
+    </div>
+    <label for="roomInput">Arkadaşının oda kodu</label>
+    <input id="roomInput" maxlength="6" inputmode="numeric" placeholder="6 haneli kod">
+    <p class="notice">Bu sayfa Supabase bağlantısı kullanır. Oda işlemleri için Supabase projenin `game_rooms` tablosu ve erişim politikaları önceden kurulmuş olmalıdır.</p>
+    <div id="setupStatus" class="status">Hazır. Önce oyuncu adını yaz.</div>
+  </section>
 
-      <button id="createBtn" onclick="createRoom()">Oda Oluştur</button>
+  <section id="room" class="panel hidden">
+    <p class="notice" style="text-align:center;margin-bottom:0">ODA KODUN</p>
+    <div id="roomCodeDisplay" class="roomcode">------</div>
+    <p class="notice" style="text-align:center">Arkadaşların bu kodla katılabilir.</p>
+    <hr style="border-color:#294536;margin:20px 0">
+    <h3>Oyuncular <span id="playerCount" class="small"></span></h3>
+    <ul id="players"></ul>
+    <div id="roomStatus" class="status">Oda yükleniyor…</div>
+    <button id="startBtn" class="full">Oyunu başlat</button>
+    <button id="refreshBtn" class="secondary full">Oyuncu listesini yenile</button>
+    <button id="leaveBtn" class="secondary full">Odadan ayrıl</button>
+  </section>
 
-      <div class="line"></div>
+  <section id="game" class="panel hidden">
+    <h2>Oyun masası</h2>
+    <div id="gameStatus" class="status">Oyun başlıyor…</div>
+    <p class="notice">Masadaki kartlar</p>
+    <div id="tableCards" class="table">Henüz kart oynanmadı.</div>
+    <p class="notice">Elindeki kartlar — oynamak için seç</p>
+    <div id="hand" class="cards"></div>
+    <div class="actions">
+      <button id="playBtn">Seçilen kartları oyna</button>
+      <button id="passBtn" class="secondary">Pas geç</button>
+    </div>
+    <button id="backRoomBtn" class="secondary full">Oda ekranına dön</button>
+    <p class="small">Not: Bu dosyadaki kart oyunu temel bir prototiptir; klasik Dost Kazığı kurallarının tamamı henüz uygulanmamıştır.</p>
+  </section>
+</main>
 
-      <label for="roomCodeInput">Arkadaşının oda kodu</label>
-      <input id="roomCodeInput" maxlength="6" placeholder="6 haneli kod">
-      <button class="secondary" onclick="joinRoom()">Odaya Katıl</button>
-      <p class="hint">Önce Supabase bağlantısı ayarlanmalıdır. Oda kodunu arkadaşlarınla paylaşabilirsin.</p>
-    </section>
+<script>
+(() => {
+  // Supabase proje bilgileri
+  const SUPABASE_URL = "https://rffczgtfjrmuapwkndjh.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_jLTZdjSrYfUFIIOgXRkN0A_IRBA94gG";
 
-    <section id="room">
-      <p style="text-align:center">ODA KODUN</p>
-      <div class="roomcode" id="roomCodeDisplay"></div>
-      <p style="text-align:center;color:#aabbb1">Arkadaşların bu kodla katılabilir.</p>
-      <div class="line"></div>
-      <h3>Oyuncular</h3>
-      <ul id="players"></ul>
-      <p id="playerCount"></p>
-      <button class="secondary" onclick="refreshRoom()">Oyuncu listesini yenile</button>
-      <button onclick="leaveRoom()">Odadan Ayrıl</button>
-    </section>
+  let db = null;
+  let roomId = null;
+  let roomCode = null;
+  let currentPlayer = null;
+  let roomState = null;
+  let selectedCards = new Set();
+  let pollHandle = null;
 
-    <p id="status">Bağlantı ayarı bekleniyor.</p>
-  </main>
+  const $ = id => document.getElementById(id);
+  const show = (id, yes) => $(id).classList.toggle("hidden", !yes);
+  const say = (id, msg, error=false) => { $(id).textContent = msg; $(id).classList.toggle("error", error); };
+  const playerName = () => $("playerName").value.trim().slice(0,18);
+  const connect = () => {
+    if (!window.supabase) throw new Error("Supabase kütüphanesi yüklenemedi. İnternet bağlantını kontrol et.");
+    if (!db) db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    return db;
+  };
+  const randomCode = () => String(Math.floor(100000 + Math.random() * 900000));
+  const newId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2));
 
-  <script>
-    // Supabase projenin bilgilerini birazdan buraya ekleyeceğiz.
-    const SUPABASE_URL = "https://rffczgtfjrmuapwkndjh.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_jLTZdjSrYfUFIIOgXRkN0A_IRBA94gG";
+  async function createRoom() {
+    if (!playerName()) return say("setupStatus", "Önce oyuncu adını yaz.", true);
+    try {
+      connect();
+      say("setupStatus", "Oda oluşturuluyor…");
+      currentPlayer = { id: newId(), name: playerName() };
+      roomCode = randomCode();
+      roomState = { status:"waiting", players:[currentPlayer], handByPlayer:{}, tableCards:[], currentTurn:0, lastPlay:null, passCount:0 };
+      const { data, error } = await db.from("game_rooms").insert({ room_code:roomCode, game_state:roomState }).select().single();
+      if (error) throw error;
+      roomId = data.id;
+      await openRoom();
+    } catch (e) { say("setupStatus", "Oda oluşturulamadı: " + e.message, true); }
+  }
 
-    let db = null;
-    let currentRoom = null;
-    let currentPlayer = null;
-    let refreshTimer = null;
+  async function joinRoom() {
+    if (!playerName()) return say("setupStatus", "Önce oyuncu adını yaz.", true);
+    const code = $("roomInput").value.trim();
+    if (!/^\d{6}$/.test(code)) return say("setupStatus", "6 haneli oda kodunu gir.", true);
+    try {
+      connect();
+      say("setupStatus", "Odaya katılınıyor…");
+      const { data, error } = await db.from("game_rooms").select("*").eq("room_code", code).maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error("Bu kodla bir oda bulunamadı.");
+      const state = data.game_state || {};
+      if (state.status !== "waiting") throw new Error("Bu oyun zaten başlamış.");
+      if ((state.players || []).length >= 4) throw new Error("Bu oda en fazla 4 oyuncu alıyor.");
+      currentPlayer = { id:newId(), name:playerName() };
+      state.players = [...(state.players || []), currentPlayer];
+      const { data: updated, error: updateError } = await db.from("game_rooms").update({ game_state:state }).eq("id", data.id).select().maybeSingle();
+      if (updateError) throw updateError;
+      if (!updated) throw new Error("Odaya katılım kaydedilemedi. Supabase UPDATE politikalarını kontrol et.");
+      roomId = data.id; roomCode = code; roomState = state;
+      await openRoom();
+    } catch (e) { say("setupStatus", "Katılınamadı: " + e.message, true); }
+  }
 
-    const $ = id => document.getElementById(id);
-    const message = text => $("status").textContent = text;
+  async function loadRoom() {
+    if (!roomId) return;
+    const { data, error } = await db.from("game_rooms").select("*").eq("id", roomId).maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error("Oda artık bulunamıyor.");
+    roomState = data.game_state || {};
+    roomCode = data.room_code || roomCode;
+    renderRoom();
+    if (roomState.status === "playing") { show("room", false); show("game", true); renderGame(); }
+  }
 
-    function connect() {
-       if (!SUPABASE_URL || !SUPABASE_KEY) {
-          
-        message("Supabase bağlantı bilgileri henüz eklenmedi.");
-        return false;
+  async function openRoom() {
+    show("setup", false); show("room", true); show("game", false);
+    $("roomCodeDisplay").textContent = roomCode;
+    renderRoom();
+    await loadRoom();
+    if (pollHandle) clearInterval(pollHandle);
+    pollHandle = setInterval(async () => {
+      try { await loadRoom(); } catch (e) { say("roomStatus", e.message, true); }
+    }, 2500);
+  }
+
+  function renderRoom() {
+    const players = roomState?.players || [];
+    $("players").innerHTML = "";
+    players.forEach((p, i) => {
+      const li = document.createElement("li");
+      li.textContent = p.name + (p.id === currentPlayer?.id ? " (sen)" : "") + (i === 0 ? " — oda sahibi" : "");
+      $("players").appendChild(li);
+    });
+    $("playerCount").textContent = `(${players.length}/4)`;
+    say("roomStatus", roomState?.status === "playing" ? "Oyun başladı!" : "Arkadaşların katılınca oyunu başlatabilirsin.");
+    $("startBtn").disabled = !(players.length >= 2 && players[0]?.id === currentPlayer?.id && roomState?.status === "waiting");
+    $("startBtn").textContent = players[0]?.id === currentPlayer?.id ? "Oyunu başlat" : "Oda sahibinin başlatması bekleniyor";
+  }
+
+  function makeDeck() {
+    const suits = ["♠","♥","♦","♣"], ranks = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
+    const deck = [];
+    suits.forEach(s => ranks.forEach((r, i) => deck.push({ id:s+r, suit:s, rank:r, value:i+2 })));
+    for (let i=deck.length-1;i>0;i--) { const j=Math.floor(Math.random()*(i+1)); [deck[i],deck[j]]=[deck[j],deck[i]]; }
+    return deck;
+  }
+
+  async function startGame() {
+    if (!roomId || !roomState || roomState.players[0]?.id !== currentPlayer?.id) return;
+    if (roomState.players.length < 2) return say("roomStatus", "Başlamak için en az 2 oyuncu gerekiyor.", true);
+    const deck = makeDeck();
+    const handByPlayer = {};
+    roomState.players.forEach(p => handByPlayer[p.id] = []);
+    deck.forEach((card, i) => handByPlayer[roomState.players[i % roomState.players.length].id].push(card));
+    roomState = { ...roomState, status:"playing", handByPlayer, tableCards:[], currentTurn:0, lastPlay:null, passCount:0, finished:[] };
+    try {
+      const { error } = await db.from("game_rooms").update({ game_state:roomState }).eq("id", roomId);
+      if (error) throw error;
+      await loadRoom();
+    } catch (e) { say("roomStatus", "Oyun başlatılamadı: " + e.message, true); }
+  }
+
+  function renderGame() {
+    if (!roomState || !currentPlayer) return;
+    const players = roomState.players || [];
+    const turn = players[roomState.currentTurn % players.length];
+    const hand = roomState.handByPlayer?.[currentPlayer.id] || [];
+    say("gameStatus", `Sıra: ${turn?.name || "—"} · Elindeki kart: ${hand.length}`);
+    $("tableCards").innerHTML = "";
+    (roomState.tableCards || []).forEach(card => {
+      const span = document.createElement("span");
+      span.textContent = card.rank + card.suit;
+      span.style.cssText = "font-size:24px;font-weight:800;padding:8px 12px;background:#f8faf8;color:" + (["♥","♦"].includes(card.suit) ? "#c52e3b" : "#17251c") + ";border-radius:8px";
+      $("tableCards").appendChild(span);
+    });
+    if (!(roomState.tableCards || []).length) $("tableCards").textContent = "Henüz kart oynanmadı.";
+    $("hand").innerHTML = "";
+    selectedCards.clear();
+    hand.forEach(card => {
+      const btn = document.createElement("button");
+      btn.className = "playing-card" + (["♥","♦"].includes(card.suit) ? " red" : "");
+      btn.textContent = card.rank + card.suit;
+      btn.setAttribute("aria-label", card.rank + card.suit);
+      btn.onclick = () => {
+        if (selectedCards.has(card.id)) { selectedCards.delete(card.id); btn.classList.remove("selected"); }
+        else { selectedCards.add(card.id); btn.classList.add("selected"); }
+      };
+      $("hand").appendChild(btn);
+    });
+    const isTurn = turn?.id === currentPlayer.id;
+    $("playBtn").disabled = !isTurn;
+    $("passBtn").disabled = !isTurn;
+  }
+
+  async function saveGameState(next) {
+    const { error } = await db.from("game_rooms").update({ game_state:next }).eq("id", roomId);
+    if (error) throw error;
+    roomState = next;
+    renderGame();
+  }
+
+  async function playCards() {
+    try {
+      const players = roomState.players || [];
+      const turn = players[roomState.currentTurn % players.length];
+      if (turn?.id !== currentPlayer.id) return;
+      const hand = [...(roomState.handByPlayer?.[currentPlayer.id] || [])];
+      const chosen = hand.filter(c => selectedCards.has(c.id));
+      if (!chosen.length) return say("gameStatus", "Önce bir kart seç.", true);
+      if (roomState.tableCards?.length && chosen.length !== roomState.tableCards.length) return say("gameStatus", "Bu temel sürümde aynı sayıda kart oynamalısın.", true);
+      const nextHand = hand.filter(c => !selectedCards.has(c.id));
+      const hands = { ...roomState.handByPlayer, [currentPlayer.id]:nextHand };
+      const next = { ...roomState, handByPlayer:hands, tableCards:chosen, lastPlay:{ playerId:currentPlayer.id, count:chosen.length, value:Math.max(...chosen.map(c=>c.value)) }, passCount:0, currentTurn:(roomState.currentTurn+1)%players.length };
+      if (!nextHand.length) {
+        next.finished = [...(next.finished || []), currentPlayer.id];
+        if (next.finished.length >= players.length - 1) next.status = "finished";
       }
-      if (!db) db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      return true;
-    }
+      await saveGameState(next);
+      say("gameStatus", next.status === "finished" ? "Oyun tamamlandı!" : "Kartlar oynandı. Sıra sonraki oyuncuda.");
+    } catch (e) { say("gameStatus", "Kartlar oynanamadı: " + e.message, true); }
+  }
 
-    function makeCode() {
-      return String(Math.floor(100000 + Math.random() * 900000));
-    }
+  async function passTurn() {
+    try {
+      const players = roomState.players || [];
+      const turn = players[roomState.currentTurn % players.length];
+      if (turn?.id !== currentPlayer.id) return;
+      const next = { ...roomState, passCount:(roomState.passCount || 0)+1, currentTurn:(roomState.currentTurn+1)%players.length };
+      if (next.passCount >= players.length - 1) { next.tableCards=[]; next.passCount=0; }
+      await saveGameState(next);
+    } catch (e) { say("gameStatus", "Pas geçilemedi: " + e.message, true); }
+  }
 
-    function playerName() {
-      return $("playerName").value.trim().slice(0, 20);
-    }
+  function leaveRoom() {
+    if (pollHandle) clearInterval(pollHandle);
+    pollHandle = null; roomId = null; roomCode = null; currentPlayer = null; roomState = null;
+    show("setup", true); show("room", false); show("game", false);
+    say("setupStatus", "Odadan çıktın. Yeni oda oluşturabilir veya başka odaya katılabilirsin.");
+  }
 
-    async function createRoom() {
-      if (!connect()) return;
-      const name = playerName();
-      if (!name) return message("Önce oyuncu adını yaz.");
-      $("createBtn").disabled = true;
-
-      try {
-        let result;
-        for (let i = 0; i < 5; i++) {
-          const code = makeCode();
-          result = await db.from("game_rooms").insert({
-            room_code: code,
-            game_state: {
-              players: [{ id: crypto.randomUUID(), name }],
-              status: "waiting"
-            }
-          }).select().single();
-
-          if (!result.error) break;
-          if (result.error.code !== "23505") throw result.error;
-        }
-        if (result.error) throw result.error;
-        currentRoom = result.data;
-        currentPlayer = result.data.game_state.players[0];
-        showRoom();
-        startRefresh();
-        message("Oda oluşturuldu!");
-      } catch (e) {
-        message("Oda oluşturulamadı: " + e.message);
-      } finally {
-        $("createBtn").disabled = false;
-      }
-    }
-
-    async function joinRoom() {
-      if (!connect()) return;
-      const name = playerName();
-      const code = $("roomCodeInput").value.trim();
-      if (!name) return message("Önce oyuncu adını yaz.");
-      if (!/^\d{6}$/.test(code)) return message("6 haneli oda kodunu yaz.");
-
-      try {
-        const { data, error } = await db.from("game_rooms")
-          .select("*").eq("room_code", code).maybeSingle();
-        if (error) throw error;
-        if (!data) return message("Bu oda bulunamadı.");
-
-        const state = data.game_state || {};
-        const players = state.players || [];
-        if (players.length >= 4) return message("Bu oda şu an 4 oyuncuyla sınırlı.");
-        if (state.status !== "waiting") return message("Bu oyun başlamış.");
-
-        currentPlayer = { id: crypto.randomUUID(), name };
-        state.players = [...players, currentPlayer];
-
-        const { data: updated, error: updateError } = await db
-          .from("game_rooms").update({ game_state: state })
-          .eq("id", data.id)
-          .select().maybeSingle();
-
-        if (updateError) throw updateError;
-        if (!updated) return message("Oda değişti. Tekrar katılmayı dene.");
-        currentRoom = updated;
-        showRoom();
-        startRefresh();
-        message("Odaya katıldın!");
-      } catch (e) {
-        message("Katılım başarısız: " + e.message);
-      }
-    }
-
-    function showRoom() {
-      $("setup").style.display = "none";
-      $("room").style.display = "block";
-      $("roomCodeDisplay").textContent = currentRoom.room_code;
-      renderPlayers(currentRoom.game_state.players || []);
-    }
-
-    function renderPlayers(players) {
-      $("players").replaceChildren();
-      players.forEach(p => {
-        const li = document.createElement("li");
-        li.textContent = p.name + (p.id === currentPlayer?.id ? " (Sen)" : "");
-        $("players").appendChild(li);
-      });
-      $("playerCount").textContent = players.length + " / 4 oyuncu";
-    }
-
-    async function refreshRoom() {
-      if (!currentRoom || !connect()) return;
-      try {
-        const { data, error } = await db.from("game_rooms")
-          .select("*").eq("id", currentRoom.id).maybeSingle();
-        if (error) throw error;
-        if (!data) return message("Oda bulunamadı.");
-        currentRoom = data;
-        renderPlayers(data.game_state.players || []);
-        message("Oyuncu listesi güncel.");
-      } catch (e) {
-        message("Yenileme hatası: " + e.message);
-      }
-    }
-
-    function startRefresh() {
-      clearInterval(refreshTimer);
-      refreshTimer = setInterval(refreshRoom, 3000);
-    }
-
-    function leaveRoom() {
-      clearInterval(refreshTimer);
-      currentRoom = null;
-      currentPlayer = null;
-      $("room").style.display = "none";
-      $("setup").style.display = "block";
-      message("Odadan ayrıldın.");
-    }
-  </script>
+  $("createBtn").addEventListener("click", createRoom);
+  $("joinBtn").addEventListener("click", joinRoom);
+  $("startBtn").addEventListener("click", startGame);
+  $("refreshBtn").addEventListener("click", async () => { try { await loadRoom(); } catch(e) { say("roomStatus", e.message, true); } });
+  $("leaveBtn").addEventListener("click", leaveRoom);
+  $("playBtn").addEventListener("click", playCards);
+  $("passBtn").addEventListener("click", passTurn);
+  $("backRoomBtn").addEventListener("click", () => { show("game", false); show("room", true); });
+})();
+</script>
 </body>
 </html>
