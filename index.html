@@ -295,7 +295,12 @@ function isMod(){return !!room&&room.moderatorId===playerId}
 function isOwner(){return !!room&&room.ownerId===playerId}
 function moderator(){return room?.players?.find(p=>p.id===room.moderatorId)}
 function getQuestion(){return questions[room?.questionOrder?.[room.questionIndex]]}
-function deadline(){return (room?.questionStartedAt||0)+15000}
+function questionDuration(){
+  return getQuestion()?.song ? 25000 : 15000;
+}
+function deadline(){
+  return (room?.questionStartedAt||0)+questionDuration();
+}
 function expired(){return !room?.questionStartedAt||Date.now()>=deadline()}
 async function saveState(){
   if(!roomId||!room)return;
