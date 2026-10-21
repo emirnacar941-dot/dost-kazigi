@@ -408,7 +408,7 @@ function updateTimer(){
   const remaining=Math.max(0,deadline()-Date.now());
   const seconds=Math.ceil(remaining/1000);
   $('timer').textContent=seconds;
-  $('timerFill').style.width=(remaining/10000*100)+'%';
+  $('timerFill').style.width=(remaining/15000*100)+'%';
   if(remaining<=0){
     $('answers').querySelectorAll('button').forEach(b=>b.disabled=true);
     $('answerStatus').textContent='Süre doldu! Moderatör sonraki soruya geçebilir.';
