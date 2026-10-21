@@ -1,65 +1,341 @@
+
 <!doctype html>
 <html lang="tr">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Quiz Arena</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--bg:#0b1020;--panel:#151d35;--panel2:#1d2948;--text:#f4f6ff;--muted:#aab5d4;--accent:#8b5cf6;--cyan:#22d3ee;--good:#34d399;--bad:#fb7185}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at top,#1b2450 0,#0b1020 58%);font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;color:var(--text)}.wrap{max-width:900px;margin:auto;padding:24px 16px 50px}.brand{text-align:center;margin:18px 0 28px}.logo{display:inline-grid;place-items:center;width:58px;height:58px;border-radius:18px;background:linear-gradient(135deg,var(--accent),var(--cyan));font-size:30px;font-weight:900;box-shadow:0 8px 30px #8b5cf655}.brand h1{font-size:clamp(30px,7vw,48px);margin:12px 0 4px;letter-spacing:-1px}.brand p{color:var(--muted);margin:0}.panel{background:#151d35eF;border:1px solid #ffffff18;border-radius:22px;padding:22px;box-shadow:0 18px 55px #0003;margin:16px 0}.hidden{display:none!important}.row{display:flex;gap:12px;flex-wrap:wrap}.row>*{flex:1;min-width:180px}label{display:block;color:var(--muted);font-size:14px;margin:12px 0 7px}input{width:100%;background:#0c1328;border:1px solid #344263;border-radius:12px;padding:14px;color:white;font-size:16px;outline:none}input:focus{border-color:var(--cyan)}button{border:0;border-radius:12px;padding:13px 16px;font-weight:750;font-size:15px;cursor:pointer;color:white;background:linear-gradient(110deg,var(--accent),#6366f1);transition:transform .12s,opacity .12s}button:hover{transform:translateY(-1px)}button:disabled{opacity:.4;cursor:not-allowed;transform:none}.secondary{background:#263352}.full{width:100%;margin-top:14px}.muted{color:var(--muted)}.notice{color:var(--muted);font-size:13px;margin-top:12px;line-height:1.5}.status{padding:10px 12px;background:#0d152b;border-radius:10px;color:var(--muted);font-size:14px;margin-top:12px;overflow-wrap:anywhere}.roomtop{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.code{font-size:28px;font-weight:900;letter-spacing:5px;color:var(--cyan)}.players{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:14px}.player{background:#0d152b;border:1px solid #2a3656;padding:12px;border-radius:13px;display:flex;justify-content:space-between;align-items:center;gap:8px;overflow-wrap:anywhere}.tag{font-size:10px;letter-spacing:.5px;background:#6d42d9;color:white;padding:5px 7px;border-radius:6px;font-weight:900;white-space:nowrap}.tag.host{background:#0e7490}.question-count{color:var(--cyan);font-weight:800;font-size:13px}.question{font-size:clamp(22px,4vw,31px);line-height:1.25;margin:12px 0 22px}.answers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.answer{min-height:66px;text-align:left;background:#202c4a;border:1px solid #3a496d;display:flex;align-items:center;gap:12px}.answer .letter{display:grid;place-items:center;background:#0c1328;border-radius:9px;width:32px;height:32px;flex-shrink:0;color:var(--cyan)}.answer.selected{border-color:var(--cyan);background:#16405a}.answer.correct{border-color:var(--good);background:#164637}.answer.wrong{border-color:var(--bad)}.scoreline{display:flex;justify-content:space-between;gap:10px;align-items:center}.small{font-size:13px;color:var(--muted)}.winner{text-align:center;font-size:22px;font-weight:900;color:#fbbf24}.footer{text-align:center;color:#7482a7;font-size:12px;margin-top:24px}@media(max-width:520px){.answers{grid-template-columns:1fr}.panel{padding:17px}.wrap{padding:14px 12px 35px}}
-</style></head>
-<body><main class="wrap"><header class="brand"><div class="logo">Q</div><h1>QUIZ ARENA</h1><p>Arkadaşlarınla yarış, bilginle öne çık!</p></header>
-<section id="home" class="panel"><h2>Oyuna katıl</h2><p class="muted">Yeni bir oda kur veya arkadaşının oda kodunu gir.</p><label for="name">Oyuncu adın</label><input id="name" maxlength="20" placeholder="Örn. Emir" autocomplete="nickname"><div class="row"><button id="createBtn" class="full">✦ Oda oluştur</button><div><label for="roomCode">Oda kodu</label><input id="roomCode" maxlength="6" placeholder="6 haneli kod" inputmode="numeric"></div><button id="joinBtn" class="full secondary">Odaya katıl</button></div><div id="homeStatus" class="status hidden"></div><p class="notice">Oda kodunu yalnızca birlikte oynamak istediğin kişilerle paylaş.</p></section>
-<section id="room" class="panel hidden"><div class="roomtop"><div><div class="small">ODA KODU</div><div id="shownCode" class="code">------</div></div><button id="copyBtn" class="secondary">Kodu kopyala</button></div><p id="roomMessage" class="muted">Oyuncular bekleniyor...</p><div class="scoreline"><h3>Oyuncular</h3><span id="playerCount" class="small">0 oyuncu</span></div><div id="players" class="players"></div><button id="startBtn" class="full">Oyunu başlat</button><div id="roomStatus" class="status hidden"></div></section>
-<section id="game" class="panel hidden"><div class="scoreline"><span id="qCount" class="question-count">SORU 1 / 10</span><span id="modBadge" class="tag">MODERATÖR: -</span></div><h2 id="question" class="question"></h2><div id="answers" class="answers"></div><p id="answerStatus" class="status">Bir seçenek işaretle.</p><div id="moderatorControls" class="hidden"><button id="nextBtn" class="full">Sonraki soru →</button></div><h3>Puan tablosu</h3><div id="scores" class="players"></div></section>
-<section id="results" class="panel hidden"><div class="winner">🏆 Oyun tamamlandı!</div><p id="winnerText" class="muted" style="text-align:center"></p><h3>Sonuçlar</h3><div id="finalScores" class="players"></div><button id="againBtn" class="full">Yeni oyun başlat</button><button id="leaveBtn" class="full secondary">Ana ekrana dön</button><p class="notice">Yeni oyun başladığında moderatör yeniden rastgele seçilir.</p></section><div class="footer">QUIZ ARENA · Bilgi, eğlence ve rekabet</div></main>
+:root {
+  --bg:#090909; --panel:#151515; --panel2:#202020;
+  --text:#fff; --muted:#aaa; --orange:#ff6a00;
+  --line:#363636; --good:#20c879; --bad:#ff4545;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,system-ui,sans-serif}
+button,input{font:inherit}
+button{cursor:pointer;border:0;border-radius:10px;padding:13px 16px;font-weight:800;background:var(--orange);color:white}
+button:hover{filter:brightness(1.12)}
+button:disabled{opacity:.4;cursor:not-allowed}
+input{width:100%;padding:13px;border-radius:10px;background:#0b0b0b;color:white;border:1px solid #444}
+label{display:block;color:var(--muted);margin:12px 0 6px}
+.wrap{max-width:1250px;margin:auto;padding:22px 16px}
+header{text-align:center;padding:12px 0 25px}
+.logo{display:inline-grid;place-items:center;background:var(--orange);width:56px;height:56px;border-radius:14px;font-size:30px;font-weight:1000}
+h1{font-size:clamp(30px,5vw,48px);margin:10px 0 5px;letter-spacing:1px}
+header p,.muted,.small,.notice{color:var(--muted)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:22px;margin-bottom:16px}
+.hidden{display:none!important}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
+.row>*{flex:1;min-width:160px}
+.full{width:100%;margin-top:12px}
+.secondary{background:#333}
+.notice,.small{font-size:13px;line-height:1.5}
+.status{background:#0b0b0b;border-radius:10px;padding:12px;margin-top:12px;color:#ddd;overflow-wrap:anywhere}
+.roomtop,.scoreline{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.code{font-size:28px;font-weight:1000;letter-spacing:5px;color:var(--orange)}
+.players{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:9px;margin-top:12px}
+.player{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px;border-radius:10px;background:#202020;border:1px solid #383838;overflow-wrap:anywhere}
+.tag{display:inline-block;background:var(--orange);border-radius:6px;padding:5px 8px;font-size:11px;font-weight:900}
+.host{background:#444}
+.game-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:16px;align-items:start}
+.question{font-size:clamp(23px,3vw,34px);line-height:1.25;margin:18px 0}
+.category{font-size:12px;letter-spacing:1px;color:var(--orange);font-weight:900;text-transform:uppercase}
+.answers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.answer{display:flex;align-items:center;gap:10px;text-align:left;min-height:66px;background:#242424;border:1px solid #454545}
+.answer .letter{display:grid;place-items:center;background:#111;border-radius:7px;width:30px;height:30px;flex-shrink:0;color:var(--orange)}
+.answer.selected{border-color:var(--orange);background:#42250f}
+.answer.correct{border-color:var(--good)}
+.answer.wrong{border-color:var(--bad)}
+.audio-box{padding:14px;background:#0b0b0b;border:1px solid #393939;border-radius:12px;margin:14px 0}
+audio{width:100%;margin-top:12px}
+.leaderboard{position:sticky;top:14px}
+.leaderboard h3{margin-top:0}
+.leaderboard .player:first-child{border-color:var(--orange)}
+.winner{text-align:center;color:var(--orange);font-size:24px;font-weight:1000}
+.footer{text-align:center;color:#666;font-size:12px;padding:20px}
+@media(max-width:800px){.game-layout{grid-template-columns:1fr}.leaderboard{position:static;grid-row:2}.answers{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<header>
+  <div class="logo">Q</div>
+  <h1>QUIZ ARENA</h1>
+  <p>Bilgini göster. Rakiplerini geç. Arenanın şampiyonu ol.</p>
+</header>
+
+<section id="home" class="panel">
+  <h2>Oyuna katıl</h2>
+  <p class="muted">Bir oda kur veya arkadaşının oda kodunu gir.</p>
+  <label for="name">Oyuncu adın</label>
+  <input id="name" maxlength="20" placeholder="Oyuncu adın">
+  <div class="row">
+    <button id="createBtn">✦ Oda oluştur</button>
+    <div>
+      <label for="roomCode">6 haneli oda kodu</label>
+      <input id="roomCode" maxlength="6" inputmode="numeric" placeholder="123456">
+    </div>
+    <button id="joinBtn" class="secondary">Odaya katıl</button>
+  </div>
+  <div id="homeStatus" class="status hidden"></div>
+</section>
+
+<section id="room" class="panel hidden">
+  <div class="roomtop">
+    <div><div class="small">ODA KODU</div><div id="shownCode" class="code">------</div></div>
+    <button id="copyBtn" class="secondary">Kodu kopyala</button>
+  </div>
+  <p id="roomMessage" class="muted">Oyuncular bekleniyor.</p>
+  <div class="scoreline"><h3>Oyuncular</h3><span id="playerCount" class="small"></span></div>
+  <div id="players" class="players"></div>
+  <button id="startBtn" class="full">Oyunu başlat</button>
+  <div id="roomStatus" class="status hidden"></div>
+</section>
+
+<section id="game" class="hidden">
+  <div class="game-layout">
+    <div class="panel">
+      <div class="scoreline">
+        <span id="qCount" class="category">SORU 1 / 10</span>
+        <span id="modBadge" class="tag">MODERATÖR</span>
+      </div>
+      <div id="category" class="category" style="margin-top:18px">GENEL KÜLTÜR</div>
+      <h2 id="question" class="question"></h2>
+      <div id="audioBox" class="audio-box hidden">
+        <div id="audioMessage">Şarkı önizlemesi aranıyor...</div>
+        <audio id="songAudio" controls preload="none"></audio>
+      </div>
+      <div id="answers" class="answers"></div>
+      <p id="answerStatus" class="status">Cevabını seç.</p>
+      <div id="moderatorControls" class="hidden">
+        <button id="nextBtn" class="full">Sonraki soru →</button>
+      </div>
+    </div>
+    <aside class="panel leaderboard">
+      <h3>🏆 Canlı sıralama</h3>
+      <p class="small">Puanlar güncellendikçe sıralama değişir.</p>
+      <div id="scores" class="players"></div>
+    </aside>
+  </div>
+</section>
+
+<section id="results" class="panel hidden">
+  <div class="winner">🏆 Oyun tamamlandı!</div>
+  <p id="winnerText" class="muted" style="text-align:center"></p>
+  <h3>Sonuçlar</h3>
+  <div id="finalScores" class="players"></div>
+  <button id="againBtn" class="full">Yeni oyun başlat</button>
+  <button id="leaveBtn" class="full secondary">Ana ekrana dön</button>
+</section>
+<div class="footer">QUIZ ARENA · ESPORTS EDITION</div>
+</main>
+
 <script>
 const SUPABASE_URL='https://rffczgtfjrmuapwkndjh.supabase.co';
 const SUPABASE_KEY='sb_publishable_jLTZdjSrYfUFIIOgXRkN0A_IRBA94gG';
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
+
 const questions=[
-{q:'Güneş Sistemi’nin en büyük gezegeni hangisidir?',a:['Dünya','Jüpiter','Mars','Venüs'],c:1},
-{q:'Bir haftada kaç gün vardır?',a:['5','6','7','8'],c:2},
-{q:'Minecraft oyununda temel yapı malzemelerinden biri hangisidir?',a:['Toprak','Su tabancası','Karton bardak','Televizyon'],c:0},
-{q:'Türkiye’nin başkenti neresidir?',a:['İstanbul','İzmir','Ankara','Bursa'],c:2},
-{q:'“Kızıl Gezegen” olarak bilinen gezegen hangisidir?',a:['Mars','Satürn','Neptün','Merkür'],c:0},
-{q:'Bir örümceğin kaç bacağı vardır?',a:['6','8','10','12'],c:1},
-{q:'Aşağıdakilerden hangisi bir müzik aletidir?',a:['Mikroskop','Teleskop','Gitar','Termometre'],c:2},
-{q:'Dünya’nın doğal uydusu hangisidir?',a:['Güneş','Ay','Mars','Kutup Yıldızı'],c:1},
-{q:'İnternette “LOL” kısaltması oyunlarda genellikle ne demektir?',a:['Çok gülüyorum','Oyundan çıktım','Seviye atladım','Bağlantı yok'],c:0},
-{q:'Su, deniz seviyesinde yaklaşık kaç °C’de kaynar?',a:['50','75','100','150'],c:2},
-{q:'Hangisi bir kıtadır?',a:['Sahra','Amazon','Avrupa','Pasifik'],c:2},
-{q:'Bir üçgenin kaç kenarı vardır?',a:['2','3','4','5'],c:1},
-{q:'Sünger Bob hangi ortamda yaşar?',a:['Çölde','Denizin altında','Uzayda','Dağda'],c:1},
-{q:'Hangi hayvan “ormanların kralı” diye anılır?',a:['Aslan','Tavşan','Penguen','Koyun'],c:0},
-{q:'Satrançta oyuna başlayan taraf hangi renktir?',a:['Siyah','Beyaz','Kırmızı','Mavi'],c:1},
-{q:'İnsanlar nefes almak için hangi gazı kullanır?',a:['Helyum','Oksijen','Hidrojen','Metan'],c:1},
-{q:'Hangisi bir video oyunu platformudur?',a:['Steam','Excel','Paint','Not Defteri'],c:0},
-{q:'Dünya’nın şekli en doğru nasıl tanımlanır?',a:['Düz kare','Küp','Kutu','Kutuplardan basık küre'],c:3},
-{q:'Bir düzine kaç tanedir?',a:['10','12','14','20'],c:1},
-{q:'Hangi renk mavi ve sarı karıştırıldığında elde edilir?',a:['Yeşil','Mor','Turuncu','Pembe'],c:0}
+{type:'Genel kültür',q:'Hangi elementin kimyasal sembolü Fe’dir?',a:['Flor','Demir','Fosfor','Bakır'],c:1},
+{type:'Garip bilgiler',q:'Ahtapotların kaç kalbi vardır?',a:['Bir','İki','Üç','Dört'],c:2},
+{type:'Genel kültür',q:'Güneş Sistemi’nin en büyük gezegeni hangisidir?',a:['Satürn','Jüpiter','Neptün','Dünya'],c:1},
+{type:'Garip bilgiler',q:'Botanik açıdan aşağıdakilerden hangisi bir meyvedir?',a:['Havuç','Patates','Domates','Marul'],c:2},
+{type:'Genel kültür',q:'Türkiye Cumhuriyeti hangi yıl ilan edildi?',a:['1919','1920','1923','1938'],c:2},
+{type:'Genel kültür',q:'Bir satranç oyununda oyuna ilk hangi renk başlar?',a:['Siyah','Beyaz','Kırmızı','Rastgele seçilir'],c:1},
+{type:'Garip bilgiler',q:'Bilimsel olarak memeli olan aşağıdaki hayvanlardan hangisi uçar?',a:['Penguen','Yarasa','Kartal','Tavuk'],c:1},
+{type:'Genel kültür',q:'Dünyanın en büyük okyanusu hangisidir?',a:['Atlas Okyanusu','Hint Okyanusu','Arktik Okyanusu','Pasifik Okyanusu'],c:3},
+{type:'Garip bilgiler',q:'Bal arıları yiyecek kaynağının yönünü diğer arılara hangi yolla aktarabilir?',a:['Dans ederek','Renk değiştirerek','Islık çalarak','Kumda iz bırakarak'],c:0},
+{type:'Genel kültür',q:'League of Legends oyununda haritanın ana nehirlerinden geçen güçlü tarafsız canavar hangisidir?',a:['Baron Nashor','Creeper','Ender Dragon','Pudge'],c:0},
+{type:'Şarkı tahmini',q:'Dinlediğin parçanın adını veya sanatçısını tahmin et.',a:['Blinding Lights — The Weeknd','Shape of You — Ed Sheeran','Bad Guy — Billie Eilish','Levitating — Dua Lipa'],c:0,song:'The Weeknd Blinding Lights'},
+{type:'Genel kültür',q:'İnsan vücudundaki en büyük organ hangisidir?',a:['Karaciğer','Deri','Akciğer','Beyin'],c:1},
+{type:'Garip bilgiler',q:'Deniz samurlarının dinlenirken birbirinden uzaklaşmamak için yaptığı davranış hangisidir?',a:['El ele tutuşmak','Kabuk değiştirmek','Kumda yuva kazmak','Renk değiştirmek'],c:0},
+{type:'Genel kültür',q:'Minecraft’ta Ender Dragon hangi boyutta bulunur?',a:['Nether','Overworld','End','Deep Dark'],c:2},
+{type:'Şarkı tahmini',q:'Dinlediğin parçanın adını veya sanatçısını tahmin et.',a:['Shape of You — Ed Sheeran','Blinding Lights — The Weeknd','Flowers — Miley Cyrus','Bad Guy — Billie Eilish'],c:0,song:'Ed Sheeran Shape of You'},
+{type:'Genel kültür',q:'Dünya’nın doğal uydusu hangisidir?',a:['Güneş','Ay','Mars','Venüs'],c:1},
+{type:'Garip bilgiler',q:'Flamingoların pembe görünmesine en çok ne katkı sağlar?',a:['Güneş ışığı','Besinlerindeki pigmentler','Tuzlu su','Tüylerini boyamaları'],c:1},
+{type:'Genel kültür',q:'Bir üçgenin iç açılarının toplamı kaç derecedir?',a:['90','180','270','360'],c:1},
+{type:'Şarkı tahmini',q:'Dinlediğin parçanın adını veya sanatçısını tahmin et.',a:['Bad Guy — Billie Eilish','Flowers — Miley Cyrus','Levitating — Dua Lipa','Anti-Hero — Taylor Swift'],c:0,song:'Billie Eilish Bad Guy'},
+{type:'Genel kültür',q:'Su, deniz seviyesinde yaklaşık kaç derecede kaynar?',a:['50°C','75°C','100°C','150°C'],c:2}
 ];
-let room=null,roomId=null,playerId=null,playerName='',isOwner=false,pollTimer=null,answerLocked=false,shownQuestion=-1;
-function setStatus(id,msg){$(id).textContent=msg;$(id).classList.remove('hidden')}
-function hide(id){$(id).classList.add('hidden')}function show(id){$(id).classList.remove('hidden')}
-function randCode(){return String(Math.floor(100000+Math.random()*900000))}function shuffle(arr){return [...arr].sort(()=>Math.random()-.5)}
-function newState(){return {status:'waiting',players:[],moderatorId:null,previousModeratorId:null,questionIndex:0,questionOrder:shuffle(questions.map((_,i)=>i)).slice(0,10),answers:{},scores:{},round:0,ownerId:playerId}}
-function makePlayer(){return {id:playerId,name:playerName,score:0,answer:null}}
-async function saveState(){if(!roomId)return;const {error}=await db.from('game_rooms').update({game_state:room}).eq('id',roomId);if(error)console.error(error)}
-async function fetchRoom(){if(!roomId)return;const {data,error}=await db.from('game_rooms').select('*').eq('id',roomId).maybeSingle();if(error||!data)return;room=data.game_state||room;render()}
-function currentPlayer(){return room?.players?.find(p=>p.id===playerId)}function moderator(){return room?.players?.find(p=>p.id===room.moderatorId)}function isMod(){return !!room&&room.moderatorId===playerId}
-async function joinRoom(data,code,owner){roomId=data.id;room=data.game_state;isOwner=owner;room.players=room.players||[];room.players.push(makePlayer());room.scores=room.scores||{};room.scores[playerId]=0;await saveState();$('shownCode').textContent=code;hide('home');show('room');render();if(pollTimer)clearInterval(pollTimer);pollTimer=setInterval(fetchRoom,1800)}
-$('createBtn').onclick=async()=>{playerName=$('name').value.trim();if(!playerName)return setStatus('homeStatus','Önce oyuncu adını yaz.');playerId=crypto.randomUUID();let code=randCode();let state=newState();state.players=[];state.scores={};state.ownerId=playerId;const {data,error}=await db.from('game_rooms').insert({room_code:code,game_state:state}).select().single();if(error)return setStatus('homeStatus','Oda oluşturulamadı: '+error.message);await joinRoom(data,code,true)};
-$('joinBtn').onclick=async()=>{playerName=$('name').value.trim();const code=$('roomCode').value.trim();if(!playerName)return setStatus('homeStatus','Önce oyuncu adını yaz.');if(!/^\d{6}$/.test(code))return setStatus('homeStatus','6 haneli oda kodunu gir.');const {data,error}=await db.from('game_rooms').select('*').eq('room_code',code).maybeSingle();if(error||!data)return setStatus('homeStatus','Bu kodla oda bulunamadı. Kodu kontrol et.');if(data.game_state?.status==='playing')return setStatus('homeStatus','Bu oyun başlamış. Yeni bir oda dene.');playerId=crypto.randomUUID();await joinRoom(data,code,false)};
-$('copyBtn').onclick=async()=>{try{await navigator.clipboard.writeText($('shownCode').textContent);$('copyBtn').textContent='Kopyalandı!'}catch{$('copyBtn').textContent='Kod: '+$('shownCode').textContent}};
-function render(){if(!room)return;const ps=room.players||[];$('playerCount').textContent=ps.length+' oyuncu';$('players').innerHTML=ps.map(p=>`<div class="player"><span>${escapeHtml(p.name)}${p.id===playerId?' (Sen)':''}</span>${p.id===room.moderatorId?'<span class="tag">MODERATÖR</span>':p.id===room.ownerId?'<span class="tag host">ODA SAHİBİ</span>':''}</div>`).join('');$('startBtn').classList.toggle('hidden',room.status!=='waiting'||room.ownerId!==playerId);$('roomMessage').textContent=room.status==='waiting'?'Oyuncular bekleniyor. Oda sahibi oyunu başlatabilir.':'';if(room.status==='playing'){hide('room');show('game');hide('results');renderQuestion()}else if(room.status==='finished'){hide('room');hide('game');show('results');renderResults()}else{show('room');hide('game');hide('results')}}
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-$('startBtn').onclick=async()=>{if(!room||room.ownerId!==playerId)return;const ps=room.players||[];if(!ps.length)return;let eligible=ps.filter(p=>p.id!==room.previousModeratorId);if(!eligible.length)eligible=ps;const chosen=eligible[Math.floor(Math.random()*eligible.length)];room.moderatorId=chosen.id;room.status='playing';room.questionIndex=0;room.questionOrder=shuffle(questions.map((_,i)=>i)).slice(0,10);room.answers={};room.scores={};ps.forEach(p=>room.scores[p.id]=0);room.round=(room.round||0)+1;room.previousModeratorId=chosen.id;await saveState();render()};
-function renderQuestion(){if(!room)return;const idx=room.questionOrder?.[room.questionIndex];const q=questions[idx];if(!q){finishGame();return}if(shownQuestion!==room.questionIndex){answerLocked=false;shownQuestion=room.questionIndex}const myAnswer=room.answers?.[playerId];$('qCount').textContent=`SORU ${room.questionIndex+1} / ${room.questionOrder.length}`;$('modBadge').textContent='MODERATÖR: '+(moderator()?.name||'seçiliyor');$('question').textContent=q.q;$('answers').innerHTML=q.a.map((a,i)=>`<button class="answer ${myAnswer===i?'selected':''}" ${myAnswer!==undefined?'disabled':''} data-answer="${i}"><span class="letter">${'ABCD'[i]}</span><span>${escapeHtml(a)}</span></button>`).join('');$('answers').querySelectorAll('button').forEach(b=>b.onclick=()=>submitAnswer(Number(b.dataset.answer)));const answered=Object.keys(room.answers||{}).length;$('answerStatus').textContent=myAnswer!==undefined?'Cevabın kaydedildi. '+answered+'/'+room.players.length+' oyuncu cevapladı.':`Cevabını seç. ${answered}/${room.players.length} oyuncu cevapladı.`;$('moderatorControls').classList.toggle('hidden',!isMod());$('nextBtn').disabled=answered<(room.players||[]).length;$('scores').innerHTML=(room.players||[]).map(p=>`<div class="player"><span>${escapeHtml(p.name)}${p.id===room.moderatorId?' <b>👑</b>':''}</span><strong>${room.scores?.[p.id]||0}</strong></div>`).join('')}
-async function submitAnswer(i){if(!room||room.answers?.[playerId]!==undefined)return;const q=questions[room.questionOrder[room.questionIndex]];room.answers=room.answers||{};room.answers[playerId]=i;if(i===q.c)room.scores[playerId]=(room.scores[playerId]||0)+100;await saveState();renderQuestion()}
-$('nextBtn').onclick=async()=>{if(!isMod())return;room.questionIndex++;room.answers={};shownQuestion=-1;if(room.questionIndex>=room.questionOrder.length){await finishGame();return}await saveState();render()};
-async function finishGame(){room.status='finished';room.previousModeratorId=room.moderatorId;await saveState();render()}
-function renderResults(){const scores=(room.players||[]).map(p=>({name:p.name,id:p.id,score:room.scores?.[p.id]||0})).sort((a,b)=>b.score-a.score);$('winnerText').textContent=scores.length?`Kazanan: ${scores[0].name} · ${scores[0].score} puan`:'Oyun tamamlandı.';$('finalScores').innerHTML=scores.map((p,i)=>`<div class="player"><span>${i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.'} ${escapeHtml(p.name)} ${p.id===room.moderatorId?'👑':''}</span><strong>${p.score}</strong></div>`).join('');$('againBtn').textContent='Yeni oyun başlat';$('againBtn').disabled=room.ownerId!==playerId;$('againBtn').title=room.ownerId!==playerId?'Yeni oyunu oda sahibi başlatabilir':''}
-$('againBtn').onclick=async()=>{if(room.ownerId!==playerId)return;room.status='waiting';room.moderatorId=null;room.questionIndex=0;room.answers={};room.scores={};(room.players||[]).forEach(p=>room.scores[p.id]=0);shownQuestion=-1;await saveState();render()};
-$('leaveBtn').onclick=()=>{if(pollTimer)clearInterval(pollTimer);room=null;roomId=null;playerId=null;isOwner=false;hide('room');hide('game');hide('results');show('home');$('name').value='';$('roomCode').value=''};
-</script></body></html>
+
+let room=null,roomId=null,playerId=null,playerName='',pollTimer=null;
+let shownQuestion=-1,audioCache={},audioSearchToken=0;
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function status(id,msg){$(id).textContent=msg;$(id).classList.remove('hidden')}
+function hide(id){$(id).classList.add('hidden')}
+function show(id){$(id).classList.remove('hidden')}
+function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
+function randCode(){return String(Math.floor(100000+Math.random()*900000))}
+function newState(){return {status:'waiting',players:[],moderatorId:null,previousModeratorId:null,questionIndex:0,questionOrder:[],answers:{},scores:{},ownerId:playerId,round:0}}
+function makePlayer(){return {id:playerId,name:playerName}}
+function isMod(){return !!room&&room.moderatorId===playerId}
+function moderator(){return room?.players?.find(p=>p.id===room.moderatorId)}
+function escapeName(s){return esc(s)}
+async function saveState(){
+  if(!roomId||!room)return;
+  const {error}=await db.from('game_rooms').update({game_state:room}).eq('id',roomId);
+  if(error)console.error('Oyun durumu kaydedilemedi:',error.message);
+}
+async function fetchRoom(){
+  if(!roomId)return;
+  const {data,error}=await db.from('game_rooms').select('*').eq('id',roomId).maybeSingle();
+  if(error||!data)return;
+  const fresh=data.game_state;
+  if(!fresh)return;
+  room=fresh;
+  render();
+}
+async function joinRoom(data,code){
+  roomId=data.id;room=data.game_state;room.players=room.players||[];
+  if(room.players.some(p=>p.id===playerId)){status('homeStatus','Bu oyuncu zaten odada.');return}
+  if(room.status!=='waiting'){status('homeStatus','Bu oyun başlamış.');return}
+  room.players.push(makePlayer());room.scores=room.scores||{};room.scores[playerId]=0;
+  await saveState();
+  $('shownCode').textContent=code;hide('home');show('room');render();
+  if(pollTimer)clearInterval(pollTimer);
+  pollTimer=setInterval(fetchRoom,1800);
+}
+$('createBtn').onclick=async()=>{
+  playerName=$('name').value.trim();
+  if(!playerName)return status('homeStatus','Önce oyuncu adını yaz.');
+  playerId=crypto.randomUUID();
+  const code=randCode(),state=newState();
+  const {data,error}=await db.from('game_rooms').insert({room_code:code,game_state:state}).select().single();
+  if(error)return status('homeStatus','Oda oluşturulamadı: '+error.message);
+  await joinRoom(data,code);
+};
+$('joinBtn').onclick=async()=>{
+  playerName=$('name').value.trim();
+  const code=$('roomCode').value.trim();
+  if(!playerName)return status('homeStatus','Önce oyuncu adını yaz.');
+  if(!/^\d{6}$/.test(code))return status('homeStatus','6 haneli oda kodunu gir.');
+  const {data,error}=await db.from('game_rooms').select('*').eq('room_code',code).maybeSingle();
+  if(error||!data)return status('homeStatus','Bu kodla oda bulunamadı. Kodu kontrol et.');
+  if(data.game_state?.status!=='waiting')return status('homeStatus','Bu oyun başlamış.');
+  playerId=crypto.randomUUID();
+  await joinRoom(data,code);
+};
+$('copyBtn').onclick=async()=>{
+  try{await navigator.clipboard.writeText($('shownCode').textContent);$('copyBtn').textContent='Kopyalandı!'}
+  catch{$('copyBtn').textContent='Kod: '+$('shownCode').textContent}
+};
+function render(){
+  if(!room)return;
+  const ps=room.players||[];
+  $('playerCount').textContent=ps.length+' oyuncu';
+  $('players').innerHTML=ps.map(p=>`<div class="player"><span>${escapeName(p.name)}${p.id===playerId?' (Sen)':''}</span>${p.id===room.moderatorId?'<span class="tag">MODERATÖR</span>':p.id===room.ownerId?'<span class="tag host">ODA SAHİBİ</span>':''}</div>`).join('');
+  $('startBtn').classList.toggle('hidden',room.status!=='waiting'||room.ownerId!==playerId);
+  $('roomMessage').textContent=room.status==='waiting'?'Oyuncular bekleniyor. Oda sahibi oyunu başlatabilir.':'';
+  if(room.status==='playing'){hide('room');show('game');hide('results');renderQuestion()}
+  else if(room.status==='finished'){hide('room');hide('game');show('results');renderResults()}
+  else{show('room');hide('game');hide('results')}
+}
+$('startBtn').onclick=async()=>{
+  if(!room||room.ownerId!==playerId)return;
+  const ps=room.players||[];
+  if(!ps.length)return;
+  const eligible=ps.filter(p=>p.id!==room.previousModeratorId);
+  const pool=eligible.length?eligible:ps;
+  room.moderatorId=pool[Math.floor(Math.random()*pool.length)].id;
+  room.previousModeratorId=room.moderatorId;
+  room.status='playing';room.questionIndex=0;
+  room.questionOrder=shuffle(questions.map((_,i)=>i)).slice(0,10);
+  room.answers={};room.scores={};
+  ps.forEach(p=>room.scores[p.id]=0);
+  room.round=(room.round||0)+1;shownQuestion=-1;
+  await saveState();render();
+};
+async function loadSong(q){
+  const token=++audioSearchToken;
+  hide('audioBox');
+  $('songAudio').pause();$('songAudio').removeAttribute('src');$('songAudio').load();
+  if(!q.song)return;
+  show('audioBox');
+  $('audioMessage').textContent='Şarkı önizlemesi aranıyor...';
+  if(audioCache[q.song]){
+    if(token!==audioSearchToken)return;
+    setAudio(audioCache[q.song]);return;
+  }
+  try{
+    const url='https://itunes.apple.com/search?term='+encodeURIComponent(q.song)+'&entity=song&limit=10';
+    const res=await fetch(url);
+    if(!res.ok)throw new Error('Önizleme araması başarısız.');
+    const data=await res.json();
+    const track=(data.results||[]).find(x=>x.previewUrl);
+    if(token!==audioSearchToken)return;
+    if(!track){$('audioMessage').textContent='Bu parça için kullanılabilir önizleme bulunamadı. Yine de seçeneklerden tahmin edebilirsin.';return}
+    audioCache[q.song]=track.previewUrl;
+    setAudio(track.previewUrl);
+  }catch{
+    if(token===audioSearchToken)$('audioMessage').textContent='Ses önizlemesi yüklenemedi. İnternet bağlantını kontrol et.';
+  }
+}
+function setAudio(url){
+  $('songAudio').src=url;$('songAudio').load();
+  $('audioMessage').textContent='🎵 Önizlemeyi dinle ve doğru cevabı seç.';
+}
+function renderQuestion(){
+  if(!room)return;
+  const idx=room.questionOrder?.[room.questionIndex],q=questions[idx];
+  if(!q){finishGame();return}
+  if(shownQuestion!==room.questionIndex){
+    shownQuestion=room.questionIndex;
+    if(q.song)loadSong(q);else{audioSearchToken++;hide('audioBox');$('songAudio').pause()}
+  }
+  const myAnswer=room.answers?.[playerId];
+  $('qCount').textContent=`SORU ${room.questionIndex+1} / ${room.questionOrder.length}`;
+  $('modBadge').textContent='MODERATÖR: '+(moderator()?.name||'seçiliyor');
+  $('category').textContent=q.type;
+  $('question').textContent=q.q;
+  $('answers').innerHTML=q.a.map((a,i)=>`<button class="answer ${myAnswer===i?'selected':''}" ${myAnswer!==undefined?'disabled':''} data-answer="${i}"><span class="letter">${'ABCD'[i]}</span><span>${esc(a)}</span></button>`).join('');
+  $('answers').querySelectorAll('button').forEach(b=>b.onclick=()=>submitAnswer(Number(b.dataset.answer)));
+  const answered=Object.keys(room.answers||{}).length;
+  $('answerStatus').textContent=myAnswer!==undefined?'Cevabın kaydedildi. '+answered+'/'+room.players.length+' oyuncu cevapladı.':`Cevabını seç. ${answered}/${room.players.length} oyuncu cevapladı.`;
+  $('moderatorControls').classList.toggle('hidden',!isMod());
+  $('nextBtn').disabled=answered<(room.players||[]).length;
+  const scores=(room.players||[]).map(p=>({id:p.id,name:p.name,score:room.scores?.[p.id]||0})).sort((a,b)=>b.score-a.score);
+  $('scores').innerHTML=scores.map((p,i)=>`<div class="player"><span>${i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.'} ${esc(p.name)}${p.id===room.moderatorId?' 👑':''}</span><strong>${p.score}</strong></div>`).join('');
+}
+async function submitAnswer(i){
+  if(!room||room.answers?.[playerId]!==undefined)return;
+  const q=questions[room.questionOrder[room.questionIndex]];
+  room.answers=room.answers||{};room.scores=room.scores||{};
+  room.answers[playerId]=i;
+  if(i===q.c)room.scores[playerId]=(room.scores[playerId]||0)+100;
+  await saveState();renderQuestion();
+}
+$('nextBtn').onclick=async()=>{
+  if(!isMod())return;
+  if(Object.keys(room.answers||{}).length<(room.players||[]).length)return;
+  room.questionIndex++;room.answers={};shownQuestion=-1;
+  if(room.questionIndex>=room.questionOrder.length){await finishGame();return}
+  await saveState();render();
+};
+async function finishGame(){
+  room.status='finished';room.previousModeratorId=room.moderatorId;
+  await saveState();render();
+}
+function renderResults(){
+  const scores=(room.players||[]).map(p=>({name:p.name,id:p.id,score:room.scores?.[p.id]||0})).sort((a,b)=>b.score-a.score);
+  $('winnerText').textContent=scores.length?`Kazanan: ${scores[0].name} · ${scores[0].score} puan`:'Oyun tamamlandı.';
+  $('finalScores').innerHTML=scores.map((p,i)=>`<div class="player"><span>${i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.'} ${esc(p.name)}</span><strong>${p.score}</strong></div>`).join('');
+  $('againBtn').disabled=room.ownerId!==playerId;
+}
+$('againBtn').onclick=async()=>{
+  if(!room||room.ownerId!==playerId)return;
+  room.status='waiting';room.moderatorId=null;room.questionIndex=0;
+  room.answers={};room.scores={};
+  (room.players||[]).forEach(p=>room.scores[p.id]=0);
+  shownQuestion=-1;await saveState();render();
+};
+$('leaveBtn').onclick=()=>{
+  if(pollTimer)clearInterval(pollTimer);
+  room=null;roomId=null;playerId=null;hide('room');hide('game');hide('results');show('home');
+  $('name').value='';$('roomCode').value='';
+};
+</script>
+</body>
+</html>
