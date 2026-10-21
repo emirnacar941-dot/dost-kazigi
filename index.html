@@ -433,7 +433,7 @@ function renderQuestion(){
   $('modBadge').textContent='MODERATÖR: '+(moderator()?.name||'seçiliyor');
   $('category').textContent=q.type;
   $('question').textContent=q.q;
-  $('answerconst revealAnswer=myAnswer!==undefined||timeOver;
+  const revealAnswer=myAnswer!==undefined||timeOver;
 $('answers').innerHTML=q.a.map((a,i)=>`<button class="answer ${myAnswer===i?'selected':''} ${revealAnswer&&i===q.c?'correct':''} ${myAnswer===i&&i!==q.c?'wrong':''}" ${(myAnswer!==undefined||timeOver)?'disabled':''} data-answer="${i}"><span class="letter">${'ABCD'[i]}</span><span>${esc(a)}</span></button>`).join('');
   $('answers').querySelectorAll('button').forEach(b=>b.onclick=()=>submitAnswer(Number(b.dataset.answer)));
   $('answerStatus').textContent=myAnswer!==undefined?'Cevabın kaydedildi. '+answered+'/'+room.players.length+' oyuncu cevapladı.':timeOver?'Süre doldu!':'Cevabını seç. '+answered+'/'+room.players.length+' oyuncu cevapladı.';
